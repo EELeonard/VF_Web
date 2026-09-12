@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1789242468683,
+      "tag": "0000_certain_hercules",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789243274310,
+      "tag": "0001_mixed_wraith",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789245287771,
+      "tag": "0002_boring_northstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789247658744,
+      "tag": "0003_easy_shocker",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1789249010651,
+      "tag": "0004_careless_rockslide",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789249850004,
+      "tag": "0005_heavy_lyja",
+      "breakpoints": true
+    }
+  ]
+}
