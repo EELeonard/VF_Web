@@ -7,6 +7,8 @@ type Range = {
   available_from: string;
   available_until: string;
 };
+type Appointment = { id:number; reference:string; simulator:string; flight_date:string; flight_time:string; duration:number; customer_name:string; status:"confirmed"|"completed"; instructor_assignment_source:"day"|"booking" };
+type DayAssignment = { id:number; simulator:string; flight_date:string };
 const monthKey = (date = new Date()) =>
   `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 function dates(month: string) {
@@ -38,6 +40,8 @@ export default function InstructorAvailability() {
     [draftMode, setDraftMode] = useState<"full_day" | "custom" | "unavailable">("unavailable"),
     [name, setName] = useState(""),
     [capabilities, setCapabilities] = useState<string[]>([]),
+    [appointments, setAppointments] = useState<Appointment[]>([]),
+    [dayAssignments, setDayAssignments] = useState<DayAssignment[]>([]),
     [error, setError] = useState(""),
     [saving, setSaving] = useState(false),
     calendar = useMemo(() => dates(month), [month]);
@@ -53,6 +57,8 @@ export default function InstructorAvailability() {
     if (response.ok) {
       setName(data.instructor.name);
       setCapabilities(data.capabilities);
+      setAppointments(data.appointments ?? []);
+      setDayAssignments(data.dayAssignments ?? []);
       setRanges(
         new Map(
           (data.ranges as Range[]).map((item) => [item.available_date, item]),
@@ -100,7 +106,11 @@ export default function InstructorAvailability() {
       setUntil(range.available_until);
       setDraftMode(rangeLabel(range) === "Ganzer Tag" ? "full_day" : "custom");
       setSelected(date);
-    } else void setDay(date, "full_day", "00:00", "23:59");
+    } else {
+      setSelected(date);
+      setDraftMode("unavailable");
+      if (date >= new Date().toISOString().slice(0, 10)) void setDay(date, "full_day", "00:00", "23:59");
+    }
   }
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
@@ -108,6 +118,16 @@ export default function InstructorAvailability() {
   }
   const wholeDaySelected = draftMode === "full_day";
   const customRangeSelected = draftMode === "custom";
+  const appointmentsByDate = useMemo(() => {
+    const grouped = new Map<string, Appointment[]>();
+    appointments.forEach((appointment) => grouped.set(appointment.flight_date, [...(grouped.get(appointment.flight_date) ?? []), appointment]));
+    return grouped;
+  }, [appointments]);
+  const assignmentsByDate = useMemo(() => {
+    const grouped = new Map<string, DayAssignment[]>();
+    dayAssignments.forEach((assignment) => grouped.set(assignment.flight_date, [...(grouped.get(assignment.flight_date) ?? []), assignment]));
+    return grouped;
+  }, [dayAssignments]);
   return (
     <main className="instructor-portal">
       <header>
@@ -166,17 +186,22 @@ export default function InstructorAvailability() {
           <div className="availability-days">
             {calendar.map((date) => {
               const range = ranges.get(date);
+              const dateAppointments = appointmentsByDate.get(date) ?? [];
+              const dateAssignments = assignmentsByDate.get(date) ?? [];
               return (
                 <button
-                  className={`${date.slice(0, 7) !== month ? "outside " : ""}${selected === date ? "selected " : ""}${range ? "available-day" : ""}`}
-                  disabled={
-                    date < new Date().toISOString().slice(0, 10) || saving
-                  }
+                  className={`${date.slice(0, 7) !== month ? "outside " : ""}${selected === date ? "selected " : ""}${range ? "available-day " : ""}${dateAssignments.length ? "assigned-day " : ""}${dateAppointments.length ? "appointment-day" : ""}`}
+                  disabled={saving}
                   onClick={() => selectDate(date)}
                   key={date}
                 >
                   <b>{Number(date.slice(-2))}</b>
-                  <small>{rangeLabel(range)}</small>
+                  <span className="instructor-day-content">
+                    {dateAssignments.length > 0 && <strong>Tageseinsatz: {dateAssignments.map(item => item.simulator).join(", ")}</strong>}
+                    {dateAppointments.slice(0, 2).map(item => <i key={item.id}>{item.flight_time} · {item.simulator}</i>)}
+                    {dateAppointments.length > 2 && <i>+{dateAppointments.length - 2} weitere</i>}
+                    {!dateAssignments.length && !dateAppointments.length && <small>{rangeLabel(range)}</small>}
+                  </span>
                 </button>
               );
             })}
@@ -196,6 +221,10 @@ export default function InstructorAvailability() {
               Legen Sie ein beliebiges Zeitfenster fest oder geben Sie den
               ganzen Tag frei.
             </p>
+            {((assignmentsByDate.get(selected)?.length ?? 0) > 0 || (appointmentsByDate.get(selected)?.length ?? 0) > 0) && <div className="instructor-schedule">
+              {(assignmentsByDate.get(selected) ?? []).map(assignment => <div className="instructor-day-assignment" key={assignment.id}><b>Ganztägiger Einsatz</b><span>{assignment.simulator}</span></div>)}
+              {(appointmentsByDate.get(selected) ?? []).map(appointment => <div className="instructor-appointment" key={appointment.id}><time>{appointment.flight_time}</time><span><b>{appointment.simulator}</b><small>{appointment.duration} Minuten · {appointment.customer_name} · {appointment.reference}</small></span></div>)}
+            </div>}
             <div className="availability-range-actions">
               <button
                 className={

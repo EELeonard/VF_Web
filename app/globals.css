@@ -1024,11 +1024,24 @@ footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64p
 .availability-days button.outside { opacity:.35; }
 .availability-days button.selected { position:relative; z-index:1; background:rgba(0,113,227,.12); box-shadow:inset 0 0 0 2px var(--blue); }
 .availability-days button.available-day small { color:#24814a; font-weight:700; }
+.availability-days button.assigned-day { background:rgba(255,159,10,.12); box-shadow:inset 0 0 0 2px #ff9f0a; }
+.availability-days button.appointment-day:not(.assigned-day) { background:rgba(0,113,227,.09); }
+.instructor-day-content { display:grid; gap:4px; width:100%; }
+.instructor-day-content strong,.instructor-day-content i { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; line-height:1.3; font-style:normal; }
+.instructor-day-content strong { color:#c66b00; }
+.instructor-day-content i { color:var(--blue); }
 .availability-days button:disabled { cursor:not-allowed; opacity:.28; }
 .availability-days small { color:var(--vf-secondary); }
 .availability-times { margin-top:24px; padding:24px; }
 .availability-times h2 { margin:0; text-transform:capitalize; }
 .availability-times p { color:var(--vf-secondary); }
+.instructor-schedule { display:grid; gap:8px; margin:18px 0 22px; }
+.instructor-day-assignment,.instructor-appointment { display:flex; align-items:center; gap:14px; min-height:62px; padding:12px 14px; border:1px solid var(--vf-separator); border-radius:14px; background:var(--vf-background); }
+.instructor-day-assignment { border-color:rgba(255,159,10,.55); background:rgba(255,159,10,.1); }
+.instructor-day-assignment span { margin-left:auto; color:#c66b00; font-weight:700; }
+.instructor-appointment time { min-width:52px; color:var(--blue); font-size:17px; font-weight:700; }
+.instructor-appointment>span { display:grid; gap:3px; }
+.instructor-appointment small { color:var(--vf-secondary); }
 .availability-times>div { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
 .availability-times button { min-height:76px; display:grid; gap:5px; padding:12px; border-radius:14px; text-align:left; }
 .availability-times button span { color:var(--vf-secondary); font-size:12px; }
