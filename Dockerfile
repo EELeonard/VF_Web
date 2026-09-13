@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 FROM node:24-bookworm-slim AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -10,6 +12,7 @@ COPY . .
 RUN npm run build
 
 FROM node:24-bookworm-slim AS runtime
+LABEL fly_launch_runtime="Node.js"
 ENV NODE_ENV=production
 ENV PORT=3000
 WORKDIR /app
