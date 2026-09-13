@@ -1,5 +1,5 @@
 app = "vf-web"
-primary_region = "vie"
+primary_region = "ams"
 
 [build]
   dockerfile = "Dockerfile"
