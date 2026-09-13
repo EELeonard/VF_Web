@@ -19,7 +19,7 @@ function invalid(post: ReturnType<typeof clean>) {
 export async function GET(request: Request) {
   if (!(await isValidSession(request, env.DB))) return Response.json({ error: "Nicht autorisiert." }, { status: 401 });
   const db = await ensureAdminDatabase(env.DB);
-  const result = await db.prepare("SELECT * FROM news_posts ORDER BY created_at DESC, id DESC").all<NewsPost>();
+  const result = await db.prepare("SELECT * FROM news_posts WHERE status='published' AND (starts_at IS NULL OR datetime(starts_at)<=datetime('now')) AND (ends_at IS NULL OR datetime(ends_at)>=datetime('now')) ORDER BY created_at DESC, id DESC").all<NewsPost>();
   return Response.json({ posts: result.results });
 }
 

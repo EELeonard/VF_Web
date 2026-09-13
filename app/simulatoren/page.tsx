@@ -11,7 +11,7 @@ export default function SimulatorsPage() {
     <section className="page-hero fleet-page-hero"><div className="eyebrow"><span /> Unsere Flotte</div><h1>Vier Cockpits.<br /><em>Unendlich viele Ziele.</em></h1><p>Vom entspannten Linienflug bis zum Überschallmanöver. Finden Sie das Flugerlebnis, das zu Ihnen passt.</p></section>
     <section className="fleet-list">
       {simulators.map((sim, index) => <article className="fleet-item reveal" id={sim.slug} key={sim.slug}>
-        <div className="fleet-image"><img src={sim.image} alt={sim.name + " Flugsimulator"} /><span>0{index + 1}</span></div>
+        <div className="fleet-image"><img src={index === 0 ? "/images/cockpit-hero.jpg" : sim.image} alt={sim.name + " Flugsimulator"} /><span>0{index + 1}</span></div>
         <div className="fleet-copy">
           <div className="eyebrow dark"><span /> {sim.type}</div><h2>{sim.name}</h2><p className="fleet-lead">{sim.description}</p>
           <div className="fleet-details">{sim.details.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>

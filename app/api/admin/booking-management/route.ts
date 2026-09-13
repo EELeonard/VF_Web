@@ -4,16 +4,17 @@ import { sendCustomBookingEmail } from "../../../lib/booking-email";
 import { ensureCommunicationsDatabase, recordCommunication, type BookingCommunication } from "../../../lib/booking-communications-db";
 import { type BookingRecord } from "../../../lib/bookings-db";
 import { isBookingTime } from "../../../lib/availability-db";
+import { bookingWithInstructorSql, ensureInstructorDatabase } from "../../../lib/instructors-db";
 
 async function bookingFor(db: D1Database, id: number) {
-  return db.prepare("SELECT * FROM bookings WHERE id = ?").bind(id).first<BookingRecord>();
+  return db.prepare(bookingWithInstructorSql + " WHERE b.id = ?").bind(id).first<BookingRecord>();
 }
 
 export async function GET(request: Request) {
   if (!(await isValidSession(request, env.DB))) return Response.json({ error: "Nicht autorisiert." }, { status: 401 });
   const id = Number(new URL(request.url).searchParams.get("bookingId"));
   if (!Number.isInteger(id)) return Response.json({ error: "Ungültige Buchung." }, { status: 400 });
-  const db = await ensureCommunicationsDatabase(env.DB);
+  const db = await ensureCommunicationsDatabase(await ensureInstructorDatabase(env.DB));
   const booking = await bookingFor(db, id);
   if (!booking) return Response.json({ error: "Buchung nicht gefunden." }, { status: 404 });
   const result = await db.prepare("SELECT * FROM booking_communications WHERE booking_id = ? ORDER BY datetime(sent_at) DESC, id DESC").bind(id).all<BookingCommunication>();
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
   const id = Number(body.bookingId);
   const action = String(body.action ?? "");
   if (!Number.isInteger(id)) return Response.json({ error: "Ungültige Buchung." }, { status: 400 });
-  const db = await ensureCommunicationsDatabase(env.DB);
+  const db = await ensureCommunicationsDatabase(await ensureInstructorDatabase(env.DB));
   const booking = await bookingFor(db, id);
   if (!booking) return Response.json({ error: "Buchung nicht gefunden." }, { status: 404 });
 
@@ -34,6 +35,20 @@ export async function POST(request: Request) {
     const note = String(body.note ?? "").trim();
     if (note.length > 4000) return Response.json({ error: "Die interne Notiz ist zu lang." }, { status: 400 });
     await db.prepare("UPDATE bookings SET internal_notes = ? WHERE id = ?").bind(note, id).run();
+    return Response.json({ updated: true });
+  }
+
+  if (action === "instructor") {
+    const instructorId = body.instructorId === null || body.instructorId === "" ? null : Number(body.instructorId);
+    if (instructorId !== null && !Number.isInteger(instructorId)) return Response.json({ error: "Ungültiger Instructor." }, { status: 400 });
+    if (instructorId !== null && !(await db.prepare("SELECT id FROM instructors i WHERE id = ? AND active = 1 AND EXISTS (SELECT 1 FROM instructor_capabilities c WHERE c.instructor_id=i.id AND c.simulator=?)").bind(instructorId, booking.simulator).first())) return Response.json({ error: "Instructor ist für diesen Simulator nicht freigegeben." }, { status: 400 });
+    if (instructorId !== null) {
+      if (!(await db.prepare("SELECT id FROM instructor_availability WHERE instructor_id=? AND available_date=? AND available_time=?").bind(instructorId,booking.flight_date,booking.flight_time).first())) return Response.json({ error: "Instructor ist für diesen Termin nicht als verfügbar eingetragen." }, { status: 409 });
+      const endAt = booking.flight_start_at ? new Date(new Date(booking.flight_start_at).getTime() + booking.duration * 60_000).toISOString() : null;
+      const conflict = booking.flight_start_at && endAt ? await db.prepare("SELECT reference FROM bookings WHERE instructor_id=? AND id!=? AND status!='cancelled' AND flight_start_at<? AND datetime(flight_start_at,'+'||duration||' minutes')>datetime(?) LIMIT 1").bind(instructorId,id,endAt,booking.flight_start_at).first<{reference:string}>() : null;
+      if (conflict) return Response.json({ error: `Instructor ist in diesem Zeitraum bereits für ${conflict.reference} eingeplant.` }, { status: 409 });
+    }
+    await db.prepare("UPDATE bookings SET instructor_id = ?, instructor_assignment_source = ? WHERE id = ?").bind(instructorId, instructorId === null ? null : "booking", id).run();
     return Response.json({ updated: true });
   }
 

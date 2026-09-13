@@ -30,7 +30,7 @@ export default function BookingPage() {
     eyebrow:"Online booking", title:"Choose your", titleAccent:"flight appointment.", intro:"Released appointments for the next six months. Complete your request in a few simple steps.",
     received:"Booking request received", success:"Your flight is reserved.", reference:"Reference", another:"Make another request", home:"Home",
     step1:"Simulator and duration", step1Help:"Choose your cockpit and preferred flight time.", minutes:"minutes",
-    step2:"Choose a date", step2Help:"The full calendar shows all appointments released by our team.", previous:"Previous month", next:"Next month",
+    step2:"Choose a date", previous:"Previous month", next:"Next month",
     available:"Released", few:"Few times", locked:"Fully booked", step3:"Start time", step4:"Your details", step4Help:"For confirmation and any questions about your booking.",
     name:"Name", namePlaceholder:"First and last name", email:"Email", phone:"Telephone", gift:"Order as a gift voucher", remark:"Booking note", optional:"optional", remarkPlaceholder:"For example your preferred route, occasion, experience or accessibility requirements", voucherCode:"Voucher code", voucherPlaceholder:"Enter code", applyVoucher:"Apply code", voucherApplied:"Voucher applied", voucherEmail:"Enter your email address before checking the code.", discount:"Discount",
     consent:"I agree to the processing of my data for this booking request.", selection:"Your selection", date:"Date", start:"Start time", duration:"Duration", voucher:"Voucher", yes:"Yes", no:"No", total:"Total price",
@@ -39,7 +39,7 @@ export default function BookingPage() {
     eyebrow:"Online Buchung", title:"Wählen Sie Ihren", titleAccent:"Flugtermin.", intro:"Freigeschaltete Termine für die kommenden sechs Monate. Anfrage in wenigen Schritten abschließen.",
     received:"Buchungsanfrage eingegangen", success:"Ihr Flug ist vorgemerkt.", reference:"Referenz", another:"Weitere Anfrage", home:"Zur Startseite",
     step1:"Simulator und Flugdauer", step1Help:"Wählen Sie Ihr Cockpit und die gewünschte Flugzeit.", minutes:"Minuten",
-    step2:"Datum wählen", step2Help:"Der vollständige Kalender zeigt alle vom Team freigeschalteten Termine.", previous:"Vorheriger Monat", next:"Nächster Monat",
+    step2:"Datum wählen", previous:"Vorheriger Monat", next:"Nächster Monat",
     available:"Freigeschaltet", few:"Wenige Zeiten", locked:"Ausgebucht", step3:"Startzeit", step4:"Ihre Daten", step4Help:"Für die Buchungsbestätigung und eventuelle Rückfragen.",
     name:"Name", namePlaceholder:"Vor- und Nachname", email:"E-Mail", phone:"Telefon", gift:"Als Gutschein bestellen", remark:"Anmerkung zur Buchung", optional:"optional", remarkPlaceholder:"Zum Beispiel Wunschroute, Anlass, Vorkenntnisse oder besondere Anforderungen", voucherCode:"Gutscheincode", voucherPlaceholder:"Code eingeben", applyVoucher:"Code anwenden", voucherApplied:"Gutschein angewendet", voucherEmail:"Bitte geben Sie zuerst Ihre E-Mail-Adresse ein.", discount:"Rabatt",
     consent:"Ich stimme der Verarbeitung meiner Daten zur Bearbeitung der Buchungsanfrage zu.", selection:"Ihre Auswahl", date:"Datum", start:"Startzeit", duration:"Flugdauer", voucher:"Gutschein", yes:"Ja", no:"Nein", total:"Gesamtpreis",
@@ -214,8 +214,7 @@ export default function BookingPage() {
             </section>
 
             <section className="booking-step">
-              <div className="step-title"><span>02</span><div><h2>{text.step2}</h2><p>{text.step2Help}</p></div></div>
-              <div className="availability-policy"><span aria-hidden="true">●</span><p>{english ? "Only appointments actively released by the Vienna Flight team are shown." : "Es werden ausschließlich Termine angezeigt, die vom Vienna Flight Team aktiv freigeschaltet wurden."}</p></div>
+              <div className="step-title"><span>02</span><div><h2>{text.step2}</h2></div></div>
               <div className="calendar">
                 <div className="calendar-toolbar">
                   <button type="button" onClick={() => changeMonth(-1)} disabled={displayMonthNumber <= currentMonthNumber} aria-label={text.previous}>←</button>

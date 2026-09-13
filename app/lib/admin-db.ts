@@ -20,6 +20,7 @@ export type AdminUser = {
   id: number;
   username: string;
   display_name: string;
+  email: string | null;
   password_hash: string;
   password_salt: string;
   active: number;
@@ -34,7 +35,12 @@ export async function ensureAdminDatabase(database: D1Database) {
     database.prepare("CREATE INDEX IF NOT EXISTS idx_news_posts_publication ON news_posts(status, starts_at, ends_at)"),
     database.prepare("CREATE TABLE IF NOT EXISTS admin_users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, display_name TEXT NOT NULL, password_hash TEXT NOT NULL, password_salt TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     database.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)"),
+    database.prepare("CREATE TABLE IF NOT EXISTS password_reset_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, used_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    database.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash)"),
+    database.prepare("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(username, expires_at)"),
   ]);
+  const userColumns = await database.prepare("PRAGMA table_info(admin_users)").all<{name:string}>();
+  if (!userColumns.results.some((column)=>column.name === "email")) await database.prepare("ALTER TABLE admin_users ADD COLUMN email TEXT").run();
   await database.prepare("PRAGMA optimize").run();
   return database;
 }

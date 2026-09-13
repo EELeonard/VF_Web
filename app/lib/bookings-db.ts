@@ -28,6 +28,9 @@ export type BookingRecord = {
   internal_notes: string;
   proposed_date: string | null;
   proposed_time: string | null;
+  instructor_id: number | null;
+  instructor_assignment_source: "day" | "booking" | null;
+  instructor_name?: string | null;
   created_at: string;
 };
 
@@ -46,6 +49,8 @@ const addedColumns: Array<[string, string]> = [
   ["internal_notes", "TEXT NOT NULL DEFAULT ''"],
   ["proposed_date", "TEXT"],
   ["proposed_time", "TEXT"],
+  ["instructor_id", "INTEGER"],
+  ["instructor_assignment_source", "TEXT"],
 ];
 
 export async function ensureBookingsDatabase(database: D1Database) {

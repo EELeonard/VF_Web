@@ -5,6 +5,7 @@ import { deliverBookingEmail } from "../../lib/booking-notifications";
 import { viennaLocalToUtc } from "../../lib/booking-time";
 import { ensureAvailabilityDatabase, isBookingTime, isSimulator } from "../../lib/availability-db";
 import { simulators } from "../../lib/site-data";
+import { ensureInstructorDatabase } from "../../lib/instructors-db";
 import { ensureVouchersDatabase, normalizeCustomerEmail, normalizeVoucherCode, validateVoucher } from "../../lib/vouchers-db";
 
 export async function POST(request: Request) {
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
     if (new Date(flightStartAt).getTime() <= Date.now()) return Response.json({ error: errorText.future }, { status: 400 });
     const db = await ensureAvailabilityDatabase(env.DB);
     await ensureBookingsDatabase(db);
+    await ensureInstructorDatabase(db);
     const simulatorData = simulators.find((item) => item.name === simulator);
     const originalPriceCents = (simulatorData?.prices[duration] ?? 0) * 100;
     if (!originalPriceCents) return Response.json({ error: errorText.selection }, { status: 400 });
@@ -82,6 +84,7 @@ export async function POST(request: Request) {
       insert = await db.prepare(bookingSql).bind(reference, simulator, duration, flightDate, flightTime, flightStartAt, gift, customerName, customerEmail, customerPhone, remark, language, null, originalPriceCents, 0, originalPriceCents, simulator, flightDate, flightTime, simulator, candidateEndAt, flightStartAt).run();
     }
     if (!insert.meta.changes) return Response.json({ error: errorText.unavailable }, { status: 409 });
+    await db.prepare("UPDATE bookings SET instructor_id = (SELECT instructor_id FROM instructor_day_assignments WHERE simulator = ? AND flight_date = ?), instructor_assignment_source = CASE WHEN EXISTS (SELECT 1 FROM instructor_day_assignments WHERE simulator = ? AND flight_date = ?) THEN 'day' ELSE NULL END WHERE id = ?").bind(simulator, flightDate, simulator, flightDate, insert.meta.last_row_id).run();
     const booking = await db.prepare("SELECT * FROM bookings WHERE id = ?").bind(insert.meta.last_row_id).first<BookingRecord>();
     if (!booking) throw new Error(errorText.saved);
     const delivery = await deliverBookingEmail("request", booking, db, env);

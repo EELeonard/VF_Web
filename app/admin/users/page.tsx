@@ -1,81 +1,25 @@
 "use client";
-
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent,useCallback,useEffect,useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminNavigation } from "../../components/AdminNavigation";
 import type { AdminIdentity } from "../../lib/admin-auth";
+import type { Instructor } from "../../lib/instructors-db";
+import { simulators } from "../../lib/site-data";
+type UserRecord={id:number;username:string;display_name:string;email:string|null;active:number};
+type Member={kind:"editor";data:UserRecord}|{kind:"instructor";data:Instructor};
 
-type UserRecord = { id: number; username: string; display_name: string; active: number; created_at: string; updated_at: string };
-
-export default function UsersAdminPage() {
-  const router = useRouter();
-  const [checking, setChecking] = useState(true);
-  const [identity, setIdentity] = useState<AdminIdentity | null>(null);
-  const [users, setUsers] = useState<UserRecord[]>([]);
-  const [defaultUser, setDefaultUser] = useState("admin");
-  const [editing, setEditing] = useState<number | null>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [password, setPassword] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-
-  const loadUsers = useCallback(async () => {
-    const response = await fetch("/api/admin/users", { credentials: "same-origin" });
-    if (response.status === 401) { router.replace("/admin"); return; }
-    const data = await response.json();
-    if (response.ok) { setUsers(data.users); setDefaultUser(data.defaultUser); }
-    else setError(data.error ?? "Benutzer konnten nicht geladen werden.");
-  }, [router]);
-
-  useEffect(() => {
-    fetch("/api/admin/session", { credentials: "same-origin" }).then((response) => response.json()).then((data) => {
-      if (!data.authenticated) { router.replace("/admin"); return; }
-      setIdentity(data.user); void loadUsers();
-    }).catch(() => setError("Die Sitzung konnte nicht geprüft werden.")).finally(() => setChecking(false));
-  }, [loadUsers, router]);
-
-  async function createUser(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setSaving(true); setError(""); setNotice("");
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    const response = await fetch("/api/admin/users", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ username: form.get("username"), displayName: form.get("displayName"), password: form.get("password") }) });
-    const data = await response.json();
-    if (response.ok) { formElement.reset(); setNotice("Benutzer wurde sicher angelegt."); await loadUsers(); }
-    else setError(data.error ?? "Benutzer konnte nicht angelegt werden.");
-    setSaving(false);
-  }
-
-  function startEdit(user: UserRecord) { setEditing(user.id); setDisplayName(user.display_name); setPassword(""); setError(""); setNotice(""); }
-
-  async function updateUser(user: UserRecord, active = user.active === 1) {
-    setSaving(true); setError(""); setNotice("");
-    const response = await fetch("/api/admin/users", { method: "PATCH", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: user.id, displayName: editing === user.id ? displayName : user.display_name, active, password: editing === user.id ? password : "" }) });
-    const data = await response.json();
-    if (response.ok) { setEditing(null); setPassword(""); setNotice(active ? "Benutzer wurde aktualisiert." : "Benutzer wurde deaktiviert und aktive Sitzungen wurden widerrufen."); await loadUsers(); }
-    else setError(data.error ?? "Benutzer konnte nicht aktualisiert werden.");
-    setSaving(false);
-  }
-
-  async function removeUser(user: UserRecord) {
-    if (!window.confirm(`Benutzer „${user.username}“ endgültig löschen?`)) return;
-    const response = await fetch(`/api/admin/users?id=${user.id}`, { method: "DELETE", credentials: "same-origin" });
-    if (response.ok) { setNotice("Benutzer wurde gelöscht. Bestehende Sitzungen sind ungültig."); await loadUsers(); }
-    else setError("Benutzer konnte nicht gelöscht werden.");
-  }
-
-  if (checking) return <main className="admin-loading"><span className="admin-spinner" /><p>Sitzung wird geprüft</p></main>;
-  if (!identity) return <main className="admin-loading"><p>Weiterleitung zur Anmeldung</p></main>;
-
-  return <main className="admin-shell"><AdminNavigation active="users" /><section className="admin-content management-content">
-    <header className="admin-topbar"><div><span className="micro-label">Access Control</span><h1>Benutzer</h1></div><div className="admin-user"><span>{identity.displayName.slice(0, 1).toUpperCase()}</span><div><b>{identity.displayName}</b><small>{identity.username}</small></div></div></header>
-    <div className="user-summary"><article><span>Administratoren</span><strong>{users.filter((user) => user.active === 1).length + 1}</strong><small>inklusive Standardzugang</small></article><article><span>Deaktiviert</span><strong>{users.filter((user) => user.active === 0).length}</strong><small>keine Dashboard-Berechtigung</small></article></div>
-    <div className="management-layout users-layout">
-      <form className="management-form compact-form" onSubmit={createUser}><header><div><span className="micro-label">Neuer Zugang</span><h2>Benutzer anlegen</h2></div></header><label>Anzeigename<input name="displayName" required maxLength={100} placeholder="Vorname Nachname" /></label><label>Benutzername<input name="username" required minLength={3} maxLength={40} pattern="[a-zA-Z0-9._-]+" autoComplete="off" placeholder="vorname.nachname" /></label><label>Initiales Passwort<input name="password" type="password" required minLength={12} autoComplete="new-password" /></label><p className="form-hint">Mindestens 12 Zeichen. Benutzer erhalten Zugriff auf Buchungen, News und Benutzerverwaltung.</p>{error && <div className="admin-error" role="alert">{error}</div>}{notice && <div className="admin-notice" role="status">{notice}</div>}<button className="button primary" disabled={saving} type="submit">{saving ? "Speichert ..." : "Benutzer anlegen"}</button></form>
-      <section className="management-list user-list"><header><div><span className="micro-label">Berechtigungen</span><h2>Dashboard-Zugänge</h2></div><span>{users.length + 1} Konten</span></header>
-        <article className="user-card owner"><div className="user-avatar">A</div><div><h3>Administrator <span>Eigentümer</span></h3><p>@{defaultUser}</p><small>Konfigurierter Standardzugang, immer aktiv</small></div><span className="user-state active">Aktiv</span></article>
-        {users.map((user) => <article className={`user-card${user.active ? "" : " inactive"}`} key={user.id}><div className="user-avatar">{user.display_name.slice(0, 1).toUpperCase()}</div>{editing === user.id ? <div className="user-editor"><label>Anzeigename<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></label><label>Neues Passwort, optional<input type="password" minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Unverändert lassen" /></label><div><button type="button" disabled={saving} onClick={() => void updateUser(user)}>Speichern</button><button className="quiet-button" type="button" onClick={() => setEditing(null)}>Abbrechen</button></div></div> : <div><h3>{user.display_name}</h3><p>@{user.username}</p><small>Angelegt am {new Date(user.created_at).toLocaleDateString("de-AT")}</small></div>}<div className="user-actions"><span className={`user-state ${user.active ? "active" : "disabled"}`}>{user.active ? "Aktiv" : "Deaktiviert"}</span>{editing !== user.id && <><button type="button" onClick={() => startEdit(user)}>Bearbeiten</button><button type="button" onClick={() => void updateUser(user, user.active !== 1)}>{user.active ? "Deaktivieren" : "Aktivieren"}</button><button className="danger-button" type="button" onClick={() => void removeUser(user)}>Löschen</button></>}</div></article>)}
-      </section>
-    </div>
-  </section></main>;
+export default function UsersAdminPage(){
+ const router=useRouter(),[checking,setChecking]=useState(true),[identity,setIdentity]=useState<AdminIdentity|null>(null),[users,setUsers]=useState<UserRecord[]>([]),[instructors,setInstructors]=useState<Instructor[]>([]),[defaultUser,setDefaultUser]=useState("admin"),[createOpen,setCreateOpen]=useState(false),[userClass,setUserClass]=useState<"editor"|"instructor">("editor"),[menu,setMenu]=useState(""),[editing,setEditing]=useState<Member|null>(null),[saving,setSaving]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const load=useCallback(async()=>{const [ur,ir]=await Promise.all([fetch("/api/admin/users"),fetch("/api/admin/instructors")]);if(ur.status===401){router.replace("/admin");return}const ud=await ur.json(),id=await ir.json();if(ur.ok){setUsers(ud.users);setDefaultUser(ud.defaultUser)}else setError(ud.error);if(ir.ok)setInstructors(id.instructors)},[router]);
+ useEffect(()=>{fetch("/api/admin/session").then(r=>r.json()).then(data=>{if(!data.authenticated){router.replace("/admin");return}setIdentity(data.user);void load()}).catch(()=>setError("Die Sitzung konnte nicht geprüft werden.")).finally(()=>setChecking(false))},[load,router]);
+ async function createStaff(event:FormEvent<HTMLFormElement>){event.preventDefault();setSaving(true);setError("");const formElement=event.currentTarget,form=new FormData(formElement),username=String(form.get("username")??""),email=String(form.get("email")??""),password=String(form.get("password")??""),editor=userClass==="editor",response=await fetch(editor?"/api/admin/users":"/api/admin/instructors",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(editor?{username,displayName:username,email,password}:{action:"create",name:username,email,username,password})}),data=await response.json();if(response.ok){formElement.reset();setCreateOpen(false);setNotice(data.invitation?.sent?`Konto erstellt. Die Einladungs-E-Mail wurde an ${email} gesendet.`:(data.invitation?.error??"Konto wurde erstellt."));await load()}else setError(data.error);setSaving(false)}
+ async function saveMember(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!editing)return;setSaving(true);setError("");const form=new FormData(event.currentTarget),name=String(form.get("name")??""),email=String(form.get("email")??""),password=String(form.get("temporaryPassword")??"");if(editing.kind==="editor"){const r=await fetch("/api/admin/users",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({id:editing.data.id,displayName:name,email,active:Boolean(editing.data.active),password})});if(!r.ok)setError((await r.json()).error);else{setEditing(null);await load()}}else{const capabilities=form.getAll("capabilities").map(String),profile=await fetch("/api/admin/instructors",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({id:editing.data.id,action:"profile",name,email,password})});if(profile.ok){await fetch("/api/admin/instructors",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({id:editing.data.id,action:"capabilities",capabilities})});setEditing(null);await load()}else setError((await profile.json()).error)}setSaving(false)}
+ async function toggle(member:Member){const active=member.data.active!==1;if(member.kind==="editor")await fetch("/api/admin/users",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({id:member.data.id,displayName:member.data.display_name,email:member.data.email,active,password:""})});else await fetch("/api/admin/instructors",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({id:member.data.id,active})});setMenu("");await load()}
+ async function remove(member:Member){if(!window.confirm("Diesen Benutzer dauerhaft löschen? Bestehende Buchungen bleiben erhalten."))return;const url=member.kind==="editor"?`/api/admin/users?id=${member.data.id}`:`/api/admin/instructors?instructorId=${member.data.id}`,response=await fetch(url,{method:"DELETE"});if(response.ok){setMenu("");setNotice("Benutzer wurde gelöscht.");await load()}else setError((await response.json()).error)}
+ async function sendReset(member:Member){const username=member.data.username;if(!username)return;const r=await fetch("/api/admin/password-reset",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"send",username})}),d=await r.json();if(r.ok)setNotice(`Reset-Link wurde an ${member.data.email} gesendet.`);else setError(d.error);setMenu("")}
+ if(checking)return <main className="admin-loading"><p>Sitzung wird geprüft</p></main>;if(!identity)return null;const members:Member[]=[...users.map(data=>({kind:"editor" as const,data})),...instructors.map(data=>({kind:"instructor" as const,data}))];
+ return <main className="admin-shell"><AdminNavigation active="users"/><section className="admin-content management-content"><header className="admin-topbar users-topbar"><div><span className="micro-label">Team und Zugriff</span><h1>Mitglieder</h1><p>Editoren und Instructoren zentral verwalten.</p></div><button className="add-member-button" type="button" onClick={()=>setCreateOpen(true)} aria-label="Benutzer hinzufügen">+</button></header>{error&&<div className="admin-error" role="alert">{error}</div>}{notice&&<div className="admin-notice" role="status">{notice}</div>}
+ <section className="team-directory"><header><div><span className="micro-label">Team</span><h2>{members.length+1} Mitglieder</h2></div></header><article className="member-row"><div className="user-avatar">A</div><div><h3>Administrator <span>Eigentümer</span></h3><p>@{defaultUser}</p></div><span className="user-state active">Aktiv</span></article>{members.map(member=>{const instructor=member.kind==="instructor",name=instructor?member.data.name:member.data.display_name,key=`${member.kind}-${member.data.id}`;return <article className={`member-row${member.data.active?"":" inactive"}`} key={key}><div className="user-avatar">{name[0]?.toUpperCase()}</div><div className="member-identity"><h3>{name} <span>{instructor?"Instructor":"Editor"}</span></h3><p>@{member.data.username} · {member.data.email}</p>{instructor&&<small>{member.data.capabilities?.length?member.data.capabilities.join(" · "):"Keine Simulator-Berechtigung"}</small>}</div><span className={`user-state ${member.data.active?"active":"disabled"}`}>{member.data.active?"Aktiv":"Deaktiviert"}</span><div className="member-menu-wrap"><button className="member-menu-button" type="button" aria-label={`${name} verwalten`} aria-expanded={menu===key} onClick={()=>setMenu(menu===key?"":key)}>•••</button>{menu===key&&<div className="member-menu" role="menu"><button onClick={()=>{setEditing(member);setMenu("")}}>Bearbeiten</button><button onClick={()=>void toggle(member)}>{member.data.active?"Deaktivieren":"Aktivieren"}</button><button onClick={()=>void sendReset(member)}>Passwort zurücksetzen</button><button className="danger" onClick={()=>void remove(member)}>Löschen</button></div>}</div></article>})}</section>
+ {createOpen&&<div className="member-modal-backdrop"><form className="member-modal" onSubmit={createStaff}><header><div><span className="micro-label">Neues Teammitglied</span><h2>Benutzer hinzufügen</h2></div><button type="button" onClick={()=>setCreateOpen(false)} aria-label="Schließen">×</button></header><label>Benutzerklasse<select value={userClass} onChange={event=>setUserClass(event.target.value as "editor"|"instructor")}><option value="editor">Editor</option><option value="instructor">Instructor</option></select></label><label>Benutzername<input name="username" required minLength={3} pattern="[a-zA-Z0-9._-]+"/></label><label>E-Mail<input name="email" type="email" required/></label><label>Initiales Passwort<input name="password" type="password" required minLength={12}/></label><p>Der Benutzer erhält eine E-Mail mit Benutzername und einem sicheren Link, um ein persönliches Passwort festzulegen.</p><button className="button primary" disabled={saving}>Benutzer anlegen</button></form></div>}
+ {editing&&<div className="member-modal-backdrop"><form className="member-modal" onSubmit={saveMember}><header><div><span className="micro-label">Mitglied bearbeiten</span><h2>{editing.kind==="instructor"?editing.data.name:editing.data.display_name}</h2></div><button type="button" onClick={()=>setEditing(null)} aria-label="Schließen">×</button></header><label>Name<input name="name" defaultValue={editing.kind==="instructor"?editing.data.name:editing.data.display_name} required/></label><label>E-Mail<input name="email" type="email" defaultValue={editing.data.email??""} required/></label><label>Neues temporäres Passwort<input name="temporaryPassword" type="password" minLength={12} placeholder="Leer lassen, um es nicht zu ändern" autoComplete="new-password"/></label>{editing.kind==="instructor"&&<fieldset className="capability-picker"><legend>Simulator-Berechtigungen</legend>{simulators.map(simulator=><label key={simulator.name}><input name="capabilities" type="checkbox" value={simulator.name} defaultChecked={(editing.data.capabilities??[]).includes(simulator.name)}/>{simulator.name}</label>)}</fieldset>}<button className="button primary" disabled={saving}>Änderungen speichern</button></form></div>}</section></main>;
 }

@@ -9,6 +9,8 @@ interface Env {
   RESEND_API_KEY?: string;
   BOOKING_EMAIL_FROM?: string;
   BOOKING_REPLY_TO?: string;
+  ADMIN_EMAIL_FROM?: string;
+  PUBLIC_SITE_URL?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {

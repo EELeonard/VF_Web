@@ -11,7 +11,7 @@ export default function EnglishSimulatorsPage() {
     <section className="page-hero fleet-page-hero"><div className="eyebrow"><span /> Our fleet</div><h1>Four cockpits.<br /><em>Endless destinations.</em></h1><p>From a relaxed commercial flight to a supersonic manoeuvre. Find the flight experience that fits you.</p></section>
     <section className="fleet-list">
       {simulatorsEnglish.map((sim, index) => <article className="fleet-item reveal" id={sim.slug} key={sim.slug}>
-        <div className="fleet-image"><img src={sim.image} alt={`${sim.name} flight simulator`} /><span>0{index + 1}</span></div>
+        <div className="fleet-image"><img src={index === 0 ? "/images/cockpit-hero.jpg" : sim.image} alt={`${sim.name} flight simulator`} /><span>0{index + 1}</span></div>
         <div className="fleet-copy">
           <div className="eyebrow dark"><span /> {sim.type}</div><h2>{sim.name}</h2><p className="fleet-lead">{sim.description}</p>
           <div className="fleet-details">{sim.details.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>

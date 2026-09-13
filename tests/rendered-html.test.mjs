@@ -6,12 +6,50 @@ async function render(pathname = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", String(Date.now()));
   const { default: worker } = await import(workerUrl.href);
+  const environment = {
+    ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) },
+  };
+  const context = { waitUntil() {}, passThroughOnException() {} };
+  const login = await worker.fetch(
+    new Request("http://localhost/api/preview-login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username: "admin", password: "Viennaflight" }),
+    }),
+    environment,
+    context,
+  );
+  assert.equal(login.status, 200);
+  const cookie = login.headers.get("set-cookie")?.split(";", 1)[0];
+  assert.ok(cookie);
   return worker.fetch(
-    new Request("http://localhost" + pathname, { headers: { accept: "text/html" } }),
-    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
-    { waitUntil() {}, passThroughOnException() {} },
+    new Request("http://localhost" + pathname, {
+      headers: { accept: "text/html", cookie },
+    }),
+    environment,
+    context,
   );
 }
+
+test("requires preview authentication across the site", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("gate-test", String(Date.now()));
+  const { default: worker } = await import(workerUrl.href);
+  const environment = {
+    ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) },
+  };
+  const context = { waitUntil() {}, passThroughOnException() {} };
+  const response = await worker.fetch(
+    new Request("http://localhost/simulatoren"),
+    environment,
+    context,
+  );
+  assert.equal(response.status, 307);
+  assert.equal(
+    response.headers.get("location"),
+    "/preview-login?returnTo=%2Fsimulatoren",
+  );
+});
 
 test("server renders the Vienna Flight experience", async () => {
   const response = await render();
@@ -39,7 +77,7 @@ test("includes accessible booking controls and reduced motion styling", async ()
   assert.match(html, /type="email"/);
   assert.match(html, /type="tel"/);
   assert.match(html, /required=""/);
-  assert.match(html, /Vollständige Kalender|vollständige Kalender/i);
+  assert.doesNotMatch(html, /Der vollständige Kalender zeigt alle vom Team freigeschalteten Termine/);
   assert.match(html, /Vorheriger Monat/);
   assert.match(html, /Nächster Monat/);
   assert.match(html, /calendar-grid/);
@@ -105,7 +143,7 @@ test("documents explicit appointment release controls", async () => {
   const bookingHtml = await (await render("/en/booking")).text();
   const adminHtml = await (await render("/admin")).text();
   const bookingRoute = await readFile(new URL("../app/api/bookings/route.ts", import.meta.url), "utf8");
-  assert.match(bookingHtml, /actively released/);
+  assert.doesNotMatch(bookingHtml, /Only appointments actively released by the Vienna Flight team are shown/);
   assert.match(adminHtml, /Sitzung wird geprüft/);
   assert.match(bookingRoute, /appointment_slots/);
   assert.match(bookingRoute, /enabled = 1/);
@@ -141,6 +179,7 @@ test("provides controlled news publishing and revocable dashboard users", async 
   const newsApi = await readFile(new URL("../app/api/news/route.ts", import.meta.url), "utf8");
   const usersApi = await readFile(new URL("../app/api/admin/users/route.ts", import.meta.url), "utf8");
   const auth = await readFile(new URL("../app/lib/admin-auth.ts", import.meta.url), "utf8");
+  const newsAdmin = await readFile(new URL("../app/admin/news/page.tsx", import.meta.url), "utf8");
   assert.match(german, /NewsSection/);
   assert.match(english, /NewsSection/);
   assert.match(newsApi, /status = 'published'/);
@@ -149,6 +188,8 @@ test("provides controlled news publishing and revocable dashboard users", async 
   assert.match(usersApi, /PBKDF2|hashPassword/);
   assert.match(auth, /crypto\.subtle\.verify/);
   assert.match(auth, /active = 1/);
+  assert.match(newsAdmin, /aria-label="News veröffentlichen"/);
+  assert.match(newsAdmin, /Aktuell sichtbare Inhalte/);
 });
 
 test("supports restricted and auditable voucher redemptions", async () => {
@@ -176,4 +217,48 @@ test("provides an operational booking workspace and communication archive", asyn
   assert.match(managementApi, /status = 'cancelled'/);
   assert.match(managementApi, /direction: "inbound"/);
   assert.match(notifications, /recordCommunication/);
+});
+
+test("supports secure password resets and instructor assignment coverage", async () => {
+  const users = await readFile(new URL("../app/admin/users/page.tsx", import.meta.url), "utf8");
+  const resetApi = await readFile(new URL("../app/api/admin/password-reset/route.ts", import.meta.url), "utf8");
+  const admin = await readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8");
+  const instructorApi = await readFile(new URL("../app/api/admin/instructors/route.ts", import.meta.url), "utf8");
+  const availabilityPage = await readFile(new URL("../app/admin/availability/page.tsx", import.meta.url), "utf8");
+  const availabilityApi = await readFile(new URL("../app/api/admin/instructor-availability/route.ts", import.meta.url), "utf8");
+  const invitation = await readFile(new URL("../app/lib/user-invitations.ts", import.meta.url), "utf8");
+  const manager = await readFile(new URL("../app/components/BookingManager.tsx", import.meta.url), "utf8");
+  assert.match(users, /Benutzer hinzufügen/);
+  assert.match(users, /Passwort zurücksetzen/);
+  assert.match(resetApi, /SHA-256/);
+  assert.match(resetApi, /used_at IS NULL/);
+  assert.match(resetApi, /60\*60\*1000/);
+  assert.match(users, /<option value="editor">Editor/);
+  assert.match(users, /<option value="instructor">Instructor/);
+  assert.match(users, /Simulator-Berechtigungen/);
+  assert.match(users, /member-menu-button/);
+  assert.match(invitation, /Benutzername:/);
+  assert.match(availabilityPage, /Meine Verfügbarkeit/);
+  assert.match(availabilityPage, /Date\.UTC/);
+  assert.match(availabilityPage, /getUTCDay/);
+  assert.match(availabilityPage, /Ganzer Tag/);
+  assert.match(availabilityPage, /Verfügbar ab/);
+  assert.match(availabilityPage, /Verfügbar bis/);
+  assert.match(availabilityPage, /Zeitfenster speichern/);
+  assert.match(availabilityPage, /customRangeSelected/);
+  assert.match(availabilityPage, /wholeDaySelected/);
+  assert.match(availabilityApi, /mode!=="unavailable"/);
+  assert.match(availabilityApi, /session\?\.role!=="instructor"/);
+  assert.match(admin, /Verfügbare Instructoren nach Simulator/);
+  assert.match(admin, /requiredTimes\.every/);
+  assert.match(admin, /assignmentId=/);
+  assert.match(admin, /Nicht zugeordnet/);
+  assert.match(admin, /session\.user\?\.role !== "instructor"/);
+  assert.match(admin, /location\.replace\("\/admin\/availability"\)/);
+  assert.match(admin, /Tagesplan mailen/);
+  assert.match(instructorApi, /instructor_day_assignments/);
+  assert.match(instructorApi, /instructor_capabilities/);
+  assert.match(instructorApi, /target\.flight_start_at/);
+  assert.match(instructorApi, /instructorIdParam===null/);
+  assert.match(manager, /Dieser Termin benötigt noch einen Instructor/);
 });

@@ -27,6 +27,8 @@ export const bookings = sqliteTable("bookings", {
   internalNotes: text("internal_notes").notNull().default(""),
   proposedDate: text("proposed_date"),
   proposedTime: text("proposed_time"),
+  instructorId: integer("instructor_id"),
+  instructorAssignmentSource: text("instructor_assignment_source", { enum: ["day", "booking"] }),
   createdAt: text("created_at").notNull().default(sql.raw("CURRENT_TIMESTAMP")),
 }, (table) => [
   uniqueIndex("idx_bookings_reference").on(table.reference),
@@ -69,6 +71,7 @@ export const adminUsers = sqliteTable("admin_users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull(),
   displayName: text("display_name").notNull(),
+  email: text("email"),
   passwordHash: text("password_hash").notNull(),
   passwordSalt: text("password_salt").notNull(),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
@@ -77,6 +80,57 @@ export const adminUsers = sqliteTable("admin_users", {
 }, (table) => [
   uniqueIndex("idx_admin_users_username").on(table.username),
 ]);
+
+export const passwordResetTokens = sqliteTable("password_reset_tokens", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  username: text("username").notNull(),
+  tokenHash: text("token_hash").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: text("used_at"),
+  createdAt: text("created_at").notNull().default(sql.raw("CURRENT_TIMESTAMP")),
+}, (table) => [uniqueIndex("idx_password_reset_tokens_hash").on(table.tokenHash), index("idx_password_reset_tokens_user").on(table.username, table.expiresAt)]);
+
+export const instructors = sqliteTable("instructors", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  username: text("username"),
+  passwordHash: text("password_hash"),
+  passwordSalt: text("password_salt"),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at").notNull().default(sql.raw("CURRENT_TIMESTAMP")),
+  updatedAt: text("updated_at").notNull().default(sql.raw("CURRENT_TIMESTAMP")),
+}, (table) => [uniqueIndex("idx_instructors_email").on(table.email), uniqueIndex("idx_instructors_username").on(table.username)]);
+
+export const instructorCapabilities = sqliteTable("instructor_capabilities", {
+  instructorId: integer("instructor_id").notNull().references(() => instructors.id),
+  simulator: text("simulator").notNull(),
+}, (table) => [uniqueIndex("idx_instructor_capability_unique").on(table.instructorId, table.simulator), index("idx_instructor_capability_simulator").on(table.simulator)]);
+
+export const instructorAvailability = sqliteTable("instructor_availability", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  instructorId: integer("instructor_id").notNull().references(() => instructors.id),
+  availableDate: text("available_date").notNull(),
+  availableTime: text("available_time").notNull(),
+  createdAt: text("created_at").notNull().default(sql.raw("CURRENT_TIMESTAMP")),
+}, (table) => [uniqueIndex("idx_instructor_availability_unique").on(table.instructorId, table.availableDate, table.availableTime), index("idx_instructor_availability_month").on(table.instructorId, table.availableDate)]);
+
+export const instructorAvailabilityRanges = sqliteTable("instructor_availability_ranges", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  instructorId: integer("instructor_id").notNull().references(() => instructors.id),
+  availableDate: text("available_date").notNull(),
+  availableFrom: text("available_from").notNull(),
+  availableUntil: text("available_until").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql.raw("CURRENT_TIMESTAMP")),
+}, (table) => [uniqueIndex("idx_instructor_availability_range_unique").on(table.instructorId, table.availableDate), index("idx_instructor_availability_range_date").on(table.availableDate)]);
+
+export const instructorDayAssignments = sqliteTable("instructor_day_assignments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  instructorId: integer("instructor_id").notNull().references(() => instructors.id),
+  simulator: text("simulator").notNull(),
+  flightDate: text("flight_date").notNull(),
+  createdAt: text("created_at").notNull().default(sql.raw("CURRENT_TIMESTAMP")),
+}, (table) => [uniqueIndex("idx_instructor_day_simulator_date").on(table.simulator, table.flightDate), index("idx_instructor_day_instructor_date").on(table.instructorId, table.flightDate)]);
 
 export const vouchers = sqliteTable("vouchers", {
   id: integer("id").primaryKey({ autoIncrement: true }),

@@ -1,0 +1,31 @@
+import { env } from "cloudflare:workers";
+import { getAdminSession, validCredentials } from "../../../lib/admin-auth";
+import { ensureAdminDatabase, hashPassword, verifyPassword } from "../../../lib/admin-db";
+import { ensureInstructorDatabase } from "../../../lib/instructors-db";
+
+const encode=(bytes:Uint8Array)=>{let value="";bytes.forEach(byte=>{value+=String.fromCharCode(byte)});return btoa(value).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"")};
+async function digest(value:string){const bytes=new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)));return Array.from(bytes,byte=>byte.toString(16).padStart(2,"0")).join("")}
+
+export async function POST(request:Request){
+ const session=await getAdminSession(request,env.DB);if(!session)return Response.json({error:"Nicht autorisiert."},{status:401});
+ const body=await request.json() as Record<string,unknown>,action=String(body.action??""),db=await ensureInstructorDatabase(await ensureAdminDatabase(env.DB));
+ if(action==="change-own"){
+  const current=String(body.currentPassword??""),password=String(body.password??"");if(password.length<12)return Response.json({error:"Das neue Passwort benötigt mindestens 12 Zeichen."},{status:400});
+  const table=session.role==="instructor"?"instructors":"admin_users",existing=await db.prepare(`SELECT password_hash,password_salt FROM ${table} WHERE username=? AND active=1`).bind(session.username).first<{password_hash:string|null;password_salt:string|null}>();
+  const valid=existing?.password_hash&&existing.password_salt?await verifyPassword(current,existing.password_hash,existing.password_salt):session.role==="editor"&&validCredentials(session.username,current);if(!valid)return Response.json({error:"Das aktuelle Passwort ist nicht korrekt."},{status:403});
+  const credentials=await hashPassword(password);if(session.role==="instructor")await db.prepare("UPDATE instructors SET password_hash=?,password_salt=?,updated_at=CURRENT_TIMESTAMP WHERE username=? AND active=1").bind(credentials.hash,credentials.salt,session.username).run();else await db.prepare("INSERT INTO admin_users (username,display_name,password_hash,password_salt,active) VALUES (?,?,?,?,1) ON CONFLICT(username) DO UPDATE SET password_hash=excluded.password_hash,password_salt=excluded.password_salt,active=1,updated_at=CURRENT_TIMESTAMP").bind(session.username,session.displayName,credentials.hash,credentials.salt).run();return Response.json({updated:true});
+ }
+ if(action==="send"){
+  if(session.role!=="editor")return Response.json({error:"Nicht autorisiert."},{status:403});const username=String(body.username??"");
+  const editor=await db.prepare("SELECT username,display_name,email FROM admin_users WHERE username=? AND active=1").bind(username).first<{username:string;display_name:string;email:string|null}>(),instructor=editor?null:await db.prepare("SELECT username,name AS display_name,email FROM instructors WHERE username=? AND active=1").bind(username).first<{username:string;display_name:string;email:string|null}>(),user=editor??instructor;if(!user?.email)return Response.json({error:"Für diesen Benutzer ist keine E-Mail-Adresse hinterlegt."},{status:400});
+  const token=encode(crypto.getRandomValues(new Uint8Array(32))),tokenHash=await digest(token),expires=new Date(Date.now()+60*60*1000).toISOString();await db.prepare("INSERT INTO password_reset_tokens (username,token_hash,expires_at) VALUES (?,?,?)").bind(user.username,tokenHash,expires).run();
+  const origin=(env.PUBLIC_SITE_URL??new URL(request.url).origin).replace(/\/$/,""),link=`${origin}/admin/reset-password?token=${encodeURIComponent(token)}`,apiKey=env.RESEND_API_KEY?.trim(),from=(env.ADMIN_EMAIL_FROM??env.BOOKING_EMAIL_FROM)?.trim();if(!apiKey||!from)return Response.json({error:"Reset-Link wurde erstellt, aber der E-Mail-Dienst ist nicht konfiguriert.",previewLink:process.env.NODE_ENV==="production"?undefined:link},{status:502});
+  const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{authorization:`Bearer ${apiKey}`,"content-type":"application/json"},body:JSON.stringify({from,to:[user.email],subject:"Vienna Flight Passwort zurücksetzen",text:`Hallo ${user.display_name},\n\nüber diesen Link können Sie innerhalb einer Stunde ein neues Passwort festlegen:\n${link}\n\nFalls Sie dies nicht angefordert haben, ignorieren Sie diese Nachricht.`})});if(!response.ok)return Response.json({error:"Die Reset-E-Mail konnte nicht zugestellt werden."},{status:502});return Response.json({sent:true});
+ }
+ return Response.json({error:"Unbekannte Aktion."},{status:400});
+}
+
+export async function PUT(request:Request){
+ const body=await request.json() as Record<string,unknown>,token=String(body.token??""),password=String(body.password??"");if(!token||password.length<12)return Response.json({error:"Link oder Passwort ist ungültig."},{status:400});const db=await ensureInstructorDatabase(await ensureAdminDatabase(env.DB)),hash=await digest(token),record=await db.prepare("SELECT username FROM password_reset_tokens WHERE token_hash=? AND used_at IS NULL AND datetime(expires_at)>datetime('now')").bind(hash).first<{username:string}>();if(!record)return Response.json({error:"Der Link ist ungültig oder abgelaufen."},{status:400});
+ const credentials=await hashPassword(password),editor=await db.prepare("UPDATE admin_users SET password_hash=?,password_salt=?,updated_at=CURRENT_TIMESTAMP WHERE username=? AND active=1").bind(credentials.hash,credentials.salt,record.username).run(),instructor=editor.meta.changes?null:await db.prepare("UPDATE instructors SET password_hash=?,password_salt=?,updated_at=CURRENT_TIMESTAMP WHERE username=? AND active=1").bind(credentials.hash,credentials.salt,record.username).run();if(!editor.meta.changes&&!instructor?.meta.changes)return Response.json({error:"Der Benutzer wurde deaktiviert oder entfernt."},{status:400});const consumed=await db.prepare("UPDATE password_reset_tokens SET used_at=CURRENT_TIMESTAMP WHERE token_hash=? AND used_at IS NULL AND datetime(expires_at)>datetime('now')").bind(hash).run();if(!consumed.meta.changes)return Response.json({error:"Der Link ist ungültig oder wurde bereits verwendet."},{status:409});return Response.json({updated:true});
+}

@@ -2,13 +2,14 @@ import { env } from "cloudflare:workers";
 import { isValidSession } from "../../../lib/admin-auth";
 import { BookingRecord, BookingStatus, ensureBookingsDatabase } from "../../../lib/bookings-db";
 import { deliverBookingEmail } from "../../../lib/booking-notifications";
+import { bookingWithInstructorSql, ensureInstructorDatabase } from "../../../lib/instructors-db";
 
 const statuses = new Set<BookingStatus>(["pending", "confirmed", "completed", "cancelled"]);
 
 export async function GET(request: Request) {
   if (!(await isValidSession(request, env.DB))) return Response.json({ error: "Nicht autorisiert." }, { status: 401 });
-  const db = await ensureBookingsDatabase(env.DB);
-  const result = await db.prepare("SELECT * FROM bookings ORDER BY flight_date ASC, flight_time ASC, created_at DESC").all<BookingRecord>();
+  const db = await ensureInstructorDatabase(env.DB);
+  const result = await db.prepare(bookingWithInstructorSql + " ORDER BY b.flight_date ASC, b.flight_time ASC, b.created_at DESC").all<BookingRecord>();
   return Response.json({ bookings: result.results });
 }
 

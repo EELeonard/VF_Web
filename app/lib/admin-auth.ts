@@ -1,4 +1,5 @@
 import { ensureAdminDatabase, verifyPassword } from "./admin-db";
+import { ensureInstructorDatabase } from "./instructors-db";
 
 const COOKIE_NAME = "viennaflight_admin";
 const SESSION_SECONDS = 60 * 60 * 8;
@@ -7,6 +8,7 @@ export type AdminIdentity = {
   username: string;
   displayName: string;
   source: "default" | "database";
+  role: "editor" | "instructor";
 };
 
 type SessionPayload = AdminIdentity & { expires: number };
@@ -61,20 +63,24 @@ export async function getAdminSession(request: Request, database?: D1Database): 
     if (!validSignature) return null;
     const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(encoded))) as SessionPayload;
     if (!payload.username || !payload.displayName || !["default", "database"].includes(payload.source) || payload.expires < Math.floor(Date.now() / 1000)) return null;
-    if (payload.source === "database") {
+    const role=payload.role??"editor";
+    if (payload.source === "database" && role === "editor") {
       if (!database) return null;
       const db = await ensureAdminDatabase(database);
       const active = await db.prepare("SELECT id FROM admin_users WHERE username = ? AND active = 1").bind(payload.username).first<{ id: number }>();
       if (!active) return null;
     }
-    return { username: payload.username, displayName: payload.displayName, source: payload.source };
+    if(payload.source === "database" && role === "instructor"){
+      if(!database)return null;const db=await ensureInstructorDatabase(database);if(!(await db.prepare("SELECT id FROM instructors WHERE username=? AND active=1").bind(payload.username).first()))return null;
+    }
+    return { username: payload.username, displayName: payload.displayName, source: payload.source, role };
   } catch {
     return null;
   }
 }
 
 export async function isValidSession(request: Request, database?: D1Database) {
-  return Boolean(await getAdminSession(request, database));
+  return (await getAdminSession(request, database))?.role === "editor";
 }
 
 export function validCredentials(username: string, password: string) {
@@ -84,11 +90,13 @@ export function validCredentials(username: string, password: string) {
 
 export async function authenticateAdmin(username: string, password: string, database: D1Database): Promise<AdminIdentity | null> {
   const normalizedUsername = username.trim();
-  if (validCredentials(normalizedUsername, password)) return { username: normalizedUsername, displayName: "Administrator", source: "default" };
   const db = await ensureAdminDatabase(database);
-  const user = await db.prepare("SELECT username, display_name, password_hash, password_salt FROM admin_users WHERE username = ? AND active = 1").bind(normalizedUsername).first<{ username: string; display_name: string; password_hash: string; password_salt: string }>();
-  if (!user || !(await verifyPassword(password, user.password_hash, user.password_salt))) return null;
-  return { username: user.username, displayName: user.display_name, source: "database" };
+  const user = await db.prepare("SELECT username, display_name, password_hash, password_salt FROM admin_users WHERE (lower(username) = lower(?) OR lower(email) = lower(?)) AND active = 1").bind(normalizedUsername,normalizedUsername).first<{ username: string; display_name: string; password_hash: string; password_salt: string }>();
+  if (user && await verifyPassword(password, user.password_hash, user.password_salt)) return { username: user.username, displayName: user.display_name, source: "database", role:"editor" };
+  const instructorDb=await ensureInstructorDatabase(database),instructor=await instructorDb.prepare("SELECT username,name,password_hash,password_salt FROM instructors WHERE (lower(username)=lower(?) OR lower(email)=lower(?)) AND active=1").bind(normalizedUsername,normalizedUsername).first<{username:string;name:string;password_hash:string;password_salt:string}>();
+  if(instructor?.password_hash&&instructor.password_salt&&await verifyPassword(password,instructor.password_hash,instructor.password_salt))return {username:instructor.username,displayName:instructor.name,source:"database",role:"instructor"};
+  if (validCredentials(normalizedUsername, password)) return { username: normalizedUsername, displayName: "Administrator", source: "default", role:"editor" };
+  return null;
 }
 
 export function sessionCookie(token: string) {

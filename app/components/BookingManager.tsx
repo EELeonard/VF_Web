@@ -12,6 +12,7 @@ export function BookingManager({ booking, onClose, onUpdated }: { booking: Booki
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [instructors, setInstructors] = useState<Array<{id:number;name:string;active:number;capabilities?:string[];availability?:Array<{available_date:string;available_time:string}>}>>([]);
 
   async function load() {
     const response = await fetch(`/api/admin/booking-management?bookingId=${booking.id}`, { credentials: "same-origin" });
@@ -32,6 +33,8 @@ export function BookingManager({ booking, onClose, onUpdated }: { booking: Booki
     return () => controller.abort();
   }, [booking.id]);
 
+  useEffect(() => { fetch("/api/admin/instructors").then((response) => response.json()).then((data) => setInstructors(data.instructors ?? [])).catch(() => undefined); }, []);
+
   async function action(payload: Record<string, unknown>) {
     setSaving(true); setError(""); setNotice("");
     const response = await fetch("/api/admin/booking-management", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ bookingId: booking.id, ...payload }) });
@@ -47,8 +50,9 @@ export function BookingManager({ booking, onClose, onUpdated }: { booking: Booki
   }
 
   return <div className="booking-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><aside className="booking-drawer" role="dialog" aria-modal="true" aria-labelledby="booking-manager-title">
-    <header><div><span className="micro-label">{current.reference}</span><h2 id="booking-manager-title">{current.customer_name}</h2><p>{current.customer_email} · {current.customer_phone}</p></div><button type="button" onClick={onClose} aria-label="Buchungsverwaltung schließen">×</button></header>
+    <header><div><span className="micro-label">{current.reference}</span><h2 id="booking-manager-title">{current.simulator} · {current.customer_name}</h2><p>{current.customer_email} · {current.customer_phone}</p></div><button type="button" onClick={onClose} aria-label="Buchungsverwaltung schließen">×</button></header>
     <div className="drawer-status"><span className={`publication-state ${current.status === "confirmed" ? "published" : "draft"}`}>{current.status === "pending" ? "Offene Anfrage" : current.status === "confirmed" ? "Bestätigt" : current.status === "cancelled" ? "Storniert" : "Abgeschlossen"}</span><b>{current.simulator}, {current.flight_date}, {current.flight_time} Uhr</b></div>
+    <section className={`instructor-assignment ${current.instructor_id ? "assigned" : "missing"}`}><div><span className="micro-label">Instructor</span><h3>{current.instructor_name ?? "Noch nicht zugeordnet"}</h3><p>{current.instructor_assignment_source === "day" ? "Über Tagesplanung zugeordnet" : current.instructor_assignment_source === "booking" ? "Direkt für diesen Termin zugeordnet" : "Dieser Termin benötigt noch einen Instructor."}</p></div><select aria-label="Instructor für diese Buchung" value={current.instructor_id ?? ""} onChange={(event)=>void action({action:"instructor",instructorId:event.target.value||null})}><option value="">Nicht zugeordnet</option>{instructors.filter(i=>i.active&&(i.capabilities??[]).includes(current.simulator)&&(i.availability??[]).some(slot=>slot.available_date===current.flight_date&&slot.available_time===current.flight_time)).map(i=><option value={i.id} key={i.id}>{i.name}</option>)}</select></section>
     <nav className="drawer-actions" aria-label="Buchungsaktionen"><button type="button" onClick={() => setMode("proposal")}>Neuer Terminvorschlag</button><button type="button" onClick={() => setMode("email")}>E-Mail schreiben</button><button type="button" onClick={() => setMode("inbound")}>Antwort erfassen</button><button className="danger-button" type="button" disabled={current.status === "cancelled" || saving} onClick={() => { if (window.confirm("Buchung stornieren und den Kunden per E-Mail informieren?")) void action({ action: "cancel" }); }}>Stornieren</button></nav>
     {mode === "proposal" && <form className="drawer-form" onSubmit={(event) => void submitMessage(event, "proposal")}><h3>Neuen Termin vorschlagen</h3><div><label>Datum<input name="date" type="date" required /></label><label>Uhrzeit<select name="time" required>{["09:30","11:00","12:30","14:00","15:30","17:00","18:30"].map((time) => <option key={time}>{time}</option>)}</select></label></div><label>Zusätzliche Nachricht <span>optional</span><textarea name="message" rows={4} /></label><button className="button primary" disabled={saving} type="submit">Vorschlag senden</button></form>}
     {mode === "email" && <form className="drawer-form" onSubmit={(event) => void submitMessage(event, "email")}><h3>E-Mail an {current.customer_email}</h3><label>Betreff<input name="subject" required maxLength={200} /></label><label>Nachricht<textarea name="message" required maxLength={8000} rows={6} /></label><button className="button primary" disabled={saving} type="submit">E-Mail senden</button></form>}
