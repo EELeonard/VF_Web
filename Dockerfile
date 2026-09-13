@@ -23,6 +23,9 @@ RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/public ./public
+COPY --from=build /app/server.mjs ./server.mjs
+COPY --from=build /app/node-runtime ./node-runtime
+RUN mkdir -p /app/data
 
 EXPOSE 3000
-CMD ["node", "node_modules/vinext/dist/cli.js", "start"]
+CMD ["node", "server.mjs"]
