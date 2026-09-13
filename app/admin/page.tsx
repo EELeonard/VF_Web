@@ -472,31 +472,31 @@ export default function AdminPage() {
   return (
     <main className="admin-shell">
       <aside className="admin-nav">
-        <Link className="brand" href="/">
+        <a className="brand" href="/">
           <span className="brand-mark">VF</span>
           <span>
             VIENNA <b>FLIGHT</b>
           </span>
-        </Link>
+        </a>
         <nav>
-          <Link className="active" href="/admin">
+          <a className="active" href="/admin">
             <span>▦</span>Buchungen
-          </Link>
-          <Link href="/admin/news">
+          </a>
+          <a href="/admin/news">
             <span>◉</span>News und Aktionen
-          </Link>
-          <Link href="/admin/vouchers">
+          </a>
+          <a href="/admin/vouchers">
             <span>◇</span>Gutscheincodes
-          </Link>
-          <Link href="/admin/users">
+          </a>
+          <a href="/admin/users">
             <span>♙</span>Benutzer
-          </Link>
-          <Link href="/buchen">
+          </a>
+          <a href="/buchen">
             <span>＋</span>Neue Buchung
-          </Link>
-          <Link href="/">
+          </a>
+          <a href="/">
             <span>↗</span>Website ansehen
-          </Link>
+          </a>
         </nav>
         <button onClick={logout}>
           <span>↪</span>Abmelden
