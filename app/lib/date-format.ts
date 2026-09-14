@@ -3,6 +3,11 @@ export function formatDateNumeric(value: string) {
   return match ? `${match[3]}.${match[2]}.${match[1]}` : value;
 }
 
+export function parseDateNumeric(value: string) {
+  const match = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(value);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : value;
+}
+
 export function formatDateTimeInput(value: string | null) {
   if (!value) return "";
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);

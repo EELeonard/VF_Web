@@ -6,6 +6,7 @@ import { type BookingRecord } from "../../../lib/bookings-db";
 import { isBookingTime } from "../../../lib/availability-db";
 import { bookingWithInstructorSql, ensureInstructorDatabase } from "../../../lib/instructors-db";
 import { bookingFitsAvailability, bookingOperationalWindow } from "../../../lib/booking-time";
+import { formatDateNumeric } from "../../../lib/date-format";
 
 async function bookingFor(db: D1Database, id: number) {
   return db.prepare(bookingWithInstructorSql + " WHERE b.id = ?").bind(id).first<BookingRecord>();
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
     const date = String(body.date ?? ""); const time = String(body.time ?? "");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !isBookingTime(time) || new Date(`${date}T${time}:00`).getTime() <= Date.now()) return Response.json({ error: "Der Terminvorschlag ist ungültig." }, { status: 400 });
     subject = booking.language === "en" ? `New appointment proposal: ${booking.reference}` : `Neuer Terminvorschlag: ${booking.reference}`;
-    const proposalText = booking.language === "en" ? `We would like to propose ${date} at ${time} for your flight experience. Please reply to confirm whether this appointment works for you.` : `Wir möchten Ihnen den ${date} um ${time} Uhr als neuen Termin für Ihr Flugerlebnis vorschlagen. Bitte antworten Sie uns, ob dieser Termin für Sie passt.`;
+    const proposalText = booking.language === "en" ? `We would like to propose ${formatDateNumeric(date)} at ${time} for your flight experience. Please reply to confirm whether this appointment works for you.` : `Wir möchten Ihnen den ${formatDateNumeric(date)} um ${time} Uhr als neuen Termin für Ihr Flugerlebnis vorschlagen. Bitte antworten Sie uns, ob dieser Termin für Sie passt.`;
     message = proposalText + (message ? `\n\n${message}` : "");
     kind = "proposal";
     await db.prepare("UPDATE bookings SET proposed_date = ?, proposed_time = ? WHERE id = ?").bind(date, time, id).run();

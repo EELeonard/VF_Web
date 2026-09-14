@@ -62,7 +62,7 @@ export async function ensureBookingsDatabase(database: D1Database) {
   for (const [name, definition] of addedColumns) {
     if (!names.has(name)) await db.prepare(`ALTER TABLE bookings ADD COLUMN ${name} ${definition}`).run();
   }
-  const legacyBookings = await db.prepare("SELECT id, flight_date, flight_time FROM bookings WHERE flight_start_at IS NULL").all<{ id: number; flight_date: string; flight_time: string }>();
+  const legacyBookings = await db.prepare("SELECT id, flight_date, flight_time FROM bookings WHERE flight_start_at IS NULL AND gift = 0 AND flight_date != '' AND flight_time != ''").all<{ id: number; flight_date: string; flight_time: string }>();
   for (const booking of legacyBookings.results) {
     const flightStartAt = viennaLocalToUtc(booking.flight_date, booking.flight_time);
     await db.prepare("UPDATE bookings SET flight_start_at = ? WHERE id = ? AND flight_start_at IS NULL").bind(flightStartAt, booking.id).run();

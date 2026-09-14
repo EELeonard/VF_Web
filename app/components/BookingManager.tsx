@@ -5,7 +5,7 @@ import type { BookingCommunication } from "../lib/booking-communications-db";
 import type { BookingRecord } from "../lib/bookings-db";
 import { BOOKING_TIMES } from "../lib/availability-db";
 import { bookingFitsAvailability } from "../lib/booking-time";
-import { formatDateNumeric, formatDateTime24 } from "../lib/date-format";
+import { formatDateNumeric, formatDateTime24, parseDateNumeric } from "../lib/date-format";
 
 export function BookingManager({ booking, onClose, onUpdated }: { booking: BookingRecord; onClose: () => void; onUpdated: () => Promise<void> }) {
   const [current, setCurrent] = useState(booking);
@@ -55,7 +55,8 @@ export function BookingManager({ booking, onClose, onUpdated }: { booking: Booki
 
   async function submitMessage(event: FormEvent<HTMLFormElement>, actionName: "proposal" | "email") {
     event.preventDefault(); const form = new FormData(event.currentTarget);
-    await action({ action: actionName, date: form.get("date"), time: form.get("time"), subject: form.get("subject"), message: form.get("message") });
+    const date = form.get("date");
+    await action({ action: actionName, date: typeof date === "string" ? parseDateNumeric(date) : date, time: form.get("time"), subject: form.get("subject"), message: form.get("message") });
   }
 
   async function acceptInquiry() {
@@ -76,7 +77,7 @@ export function BookingManager({ booking, onClose, onUpdated }: { booking: Booki
       {!current.gift && <button type="button" onClick={() => setMode("proposal")}>Neuer Terminvorschlag</button>}
       <button type="button" onClick={() => setMode("email")}>E-Mail schreiben</button>
     </nav>
-    {mode === "proposal" && <form className="drawer-form" onSubmit={(event) => void submitMessage(event, "proposal")}><h3>Neuen Termin vorschlagen</h3><div><label>Datum<input name="date" type="date" lang="de-AT" required /></label><label>Uhrzeit<select name="time" required>{BOOKING_TIMES.map((time) => <option key={time}>{time}</option>)}</select></label></div><label>Zusätzliche Nachricht <span>optional</span><textarea name="message" rows={4} /></label><button className="button primary" disabled={saving} type="submit">Vorschlag senden</button></form>}
+    {mode === "proposal" && <form className="drawer-form" onSubmit={(event) => void submitMessage(event, "proposal")}><h3>Neuen Termin vorschlagen</h3><div><label>Datum<input name="date" type="text" inputMode="numeric" pattern="\d{2}\.\d{2}\.\d{4}" placeholder="TT.MM.JJJJ" required /></label><label>Uhrzeit<select name="time" required>{BOOKING_TIMES.map((time) => <option key={time}>{time}</option>)}</select></label></div><label>Zusätzliche Nachricht <span>optional</span><textarea name="message" rows={4} /></label><button className="button primary" disabled={saving} type="submit">Vorschlag senden</button></form>}
     {mode === "email" && <form className="drawer-form" onSubmit={(event) => void submitMessage(event, "email")}><h3>E-Mail an {current.customer_email}</h3><label>Betreff<input name="subject" required maxLength={200} /></label><label>Nachricht<textarea name="message" required maxLength={8000} rows={6} /></label><button className="button primary" disabled={saving} type="submit">E-Mail senden</button></form>}
     {error && <div className="admin-error" role="alert">{error}</div>}{notice && <div className="admin-notice" role="status">{notice}</div>}
     <section className="internal-note"><div><span className="micro-label">Nur intern sichtbar</span><h3>Interne Anmerkungen</h3></div><textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={4000} rows={4} placeholder="Übergaben, Kundenwünsche oder operative Hinweise" /><button type="button" disabled={saving} onClick={() => void action({ action: "note", note })}>Notiz speichern</button></section>

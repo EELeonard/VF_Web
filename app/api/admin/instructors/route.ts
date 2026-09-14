@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { isValidSession } from "../../../lib/admin-auth";
 import { SIMULATOR_NAMES } from "../../../lib/availability-db";
 import { ensureInstructorDatabase, type Instructor, type InstructorDayAssignment } from "../../../lib/instructors-db";
+import { formatDateNumeric } from "../../../lib/date-format";
 import { hashPassword } from "../../../lib/admin-db";
 import { sendUserInvitation } from "../../../lib/user-invitations";
 import { bookingFitsAvailability, bookingOperationalWindow } from "../../../lib/booking-time";
@@ -56,8 +57,8 @@ export async function POST(request:Request) {
     const bookings=await db.prepare("SELECT reference,simulator,flight_time,duration,customer_name FROM bookings WHERE instructor_id=? AND flight_date=? AND status!='cancelled' ORDER BY flight_time").bind(instructorId,date).all<{reference:string;simulator:string;flight_time:string;duration:number;customer_name:string}>();
     if(!bookings.results.length)return Response.json({error:"Für diesen Instructor gibt es an diesem Tag keine Termine."},{status:400});
     const apiKey=env.RESEND_API_KEY?.trim(),from=(env.ADMIN_EMAIL_FROM??env.BOOKING_EMAIL_FROM)?.trim();if(!apiKey||!from)return Response.json({error:"Der E-Mail-Dienst ist nicht vollständig konfiguriert."},{status:502});
-    const lines=bookings.results.map(item=>`${item.flight_time} | ${item.simulator} | ${item.duration} Minuten | ${item.customer_name} | ${item.reference}`),text=`Hallo ${instructor.name},\n\nIhr Vienna Flight Tagesplan für ${date}:\n\n${lines.join("\n")}\n\nVienna Flight`;
-    const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{authorization:`Bearer ${apiKey}`,"content-type":"application/json"},body:JSON.stringify({from,to:[instructor.email],subject:`Ihr Vienna Flight Tagesplan für ${date}`,text})});if(!response.ok)return Response.json({error:"Der Tagesplan konnte nicht zugestellt werden."},{status:502});return Response.json({sent:true,count:bookings.results.length});
+    const formattedDate=formatDateNumeric(date),lines=bookings.results.map(item=>`${item.flight_time} | ${item.simulator} | ${item.duration} Minuten | ${item.customer_name} | ${item.reference}`),text=`Hallo ${instructor.name},\n\nIhr Vienna Flight Tagesplan für ${formattedDate}:\n\n${lines.join("\n")}\n\nVienna Flight`;
+    const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{authorization:`Bearer ${apiKey}`,"content-type":"application/json"},body:JSON.stringify({from,to:[instructor.email],subject:`Ihr Vienna Flight Tagesplan für ${formattedDate}`,text})});if(!response.ok)return Response.json({error:"Der Tagesplan konnte nicht zugestellt werden."},{status:502});return Response.json({sent:true,count:bookings.results.length});
   }
   return Response.json({error:"Unbekannte Aktion."},{status:400});
 }

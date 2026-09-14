@@ -1,4 +1,5 @@
 import type { BookingRecord } from "./bookings-db";
+import { formatDateNumeric } from "./date-format";
 
 export type EmailEnvironment = {
   RESEND_API_KEY?: string;
@@ -21,13 +22,8 @@ function escapeHtml(value: string) {
 }
 
 function formatDate(date: string, language: "de" | "en") {
-  return new Date(date + "T12:00:00").toLocaleDateString(language === "en" ? "en-GB" : "de-AT", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    timeZone: "Europe/Vienna",
-  });
+  void language;
+  return formatDateNumeric(date);
 }
 
 function contentFor(kind: EmailKind, booking: BookingRecord) {
@@ -45,7 +41,7 @@ function contentFor(kind: EmailKind, booking: BookingRecord) {
     if (kind === "confirmation") return {
       subject: `Booking confirmed: ${booking.reference}`,
       heading: "Your flight appointment is confirmed",
-      intro: `We are pleased to confirm your appointment on ${date} at ${booking.flight_time}.`,
+      intro: `We are pleased to confirm your appointment on ${date} at ${booking.flight_time}. Please arrive no more than 15 minutes before your appointment. Please only attend if you have no symptoms of a cold or any other illness.`,
     };
     if (kind === "reminder") return {
       subject: `Your flight is tomorrow: ${booking.reference}`,
@@ -61,7 +57,7 @@ function contentFor(kind: EmailKind, booking: BookingRecord) {
   if (kind === "confirmation") return {
     subject: `Buchung bestätigt: ${booking.reference}`,
     heading: "Ihr Flugtermin ist bestätigt",
-    intro: `Wir freuen uns, Ihren Termin am ${date} um ${booking.flight_time} Uhr verbindlich zu bestätigen.`,
+    intro: `Wir freuen uns, Ihren Termin am ${date} um ${booking.flight_time} Uhr verbindlich zu bestätigen. Bitte kommen Sie maximal 15 Minuten vor Ihrem Termin zu uns. Bitte nehmen Sie den Termin nur wahr, wenn Sie keine Symptome einer Erkältung oder einer anderen Krankheit haben.`,
   };
   if (kind === "reminder") return {
     subject: `Erinnerung an Ihren Flug morgen: ${booking.reference}`,

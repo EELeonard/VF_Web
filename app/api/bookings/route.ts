@@ -7,6 +7,7 @@ import { ensureAvailabilityDatabase, isBookingTime, isSimulator } from "../../li
 import { simulators } from "../../lib/site-data";
 import { ensureInstructorDatabase } from "../../lib/instructors-db";
 import { ensureVouchersDatabase, normalizeCustomerEmail, normalizeVoucherCode, validateVoucher } from "../../lib/vouchers-db";
+import { saveCustomerFromBooking } from "../../lib/customers-db";
 
 export async function POST(request: Request) {
   try {
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
       }
       const booking = await db.prepare("SELECT * FROM bookings WHERE id = ?").bind(insert.meta.last_row_id).first<BookingRecord>();
       if (!booking) throw new Error(errorText.saved);
+      await saveCustomerFromBooking(db, { email: customerEmail, name: customerName, phone: customerPhone }).catch(() => undefined);
       const delivery = await deliverBookingEmail("request", booking, db, env);
       return Response.json({ reference, emailSent: delivery.sent, voucherCode: voucher?.voucher.code ?? null, discountAmountCents: voucher?.discountAmountCents ?? 0, finalPriceCents: voucher?.finalPriceCents ?? originalPriceCents }, { status: 201 });
     }
@@ -99,6 +101,7 @@ export async function POST(request: Request) {
     if(dayAssignment){const withinRange=bookingFitsAvailability(flightTime,duration,dayAssignment.available_from,dayAssignment.available_until);if(withinRange){const conflict=await db.prepare("SELECT reference FROM bookings WHERE instructor_id=? AND id!=? AND status!='cancelled' AND datetime(flight_start_at, '-' || CASE WHEN duration=30 THEN 15 ELSE 30 END || ' minutes')<datetime(?) AND datetime(flight_start_at,'+'||(duration + CASE WHEN duration=30 THEN 15 ELSE 30 END)||' minutes')>datetime(?) LIMIT 1").bind(dayAssignment.instructor_id,insert.meta.last_row_id,candidateWindow!.endsAt,candidateWindow!.startsAt).first();if(!conflict)await db.prepare("UPDATE bookings SET instructor_id=?,instructor_assignment_source='day' WHERE id=?").bind(dayAssignment.instructor_id,insert.meta.last_row_id).run();}}
     const booking = await db.prepare("SELECT * FROM bookings WHERE id = ?").bind(insert.meta.last_row_id).first<BookingRecord>();
     if (!booking) throw new Error(errorText.saved);
+    await saveCustomerFromBooking(db, { email: customerEmail, name: customerName, phone: customerPhone }).catch(() => undefined);
     const delivery = await deliverBookingEmail("request", booking, db, env);
     return Response.json({ reference, emailSent: delivery.sent, voucherCode: voucher?.voucher.code ?? null, discountAmountCents: voucher?.discountAmountCents ?? 0, finalPriceCents: voucher?.finalPriceCents ?? originalPriceCents }, { status: 201 });
   } catch (error) {

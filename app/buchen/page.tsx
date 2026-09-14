@@ -213,7 +213,6 @@ export default function BookingPage() {
               <div className="duration-choices full-duration">
                 {durations.map((minutes) => <button type="button" className={duration === minutes ? "duration selected" : "duration"} onClick={() => { setAvailabilityLoading(true); setDuration(minutes); setVoucherResult(null); setVoucherError(""); }} key={minutes}><b>{minutes}</b><span>{text.minutes}</span><small>€ {simulator.prices[minutes]}</small></button>)}
               </div>
-              <label className="gift-toggle"><input type="checkbox" checked={gift} onChange={(event) => { setGift(event.target.checked); setBookingError(""); }} /><span /><b>{text.gift}</b></label>
             </section>
 
             {!gift && <section className="booking-step">
@@ -232,7 +231,7 @@ export default function BookingPage() {
                     const slots = availableSlots[value] ?? [];
                     const status = day < startOfToday() || slots.length === 0 ? "closed" : slots.length <= 2 ? "few" : "available";
                     const disabled = status === "closed" || availabilityLoading;
-                    return <button type="button" key={value} disabled={disabled} className={"calendar-day " + status + (selectedDate === value ? " selected" : "")} onClick={() => { setSelectedDate(value); setTime(slots[0] ?? ""); }} aria-label={`${day.toLocaleDateString(english ? "en-GB" : "de-AT", { weekday: "long", day: "numeric", month: "long" })}, ${slots.length} ${english ? "available times" : "freie Zeiten"}`}><span>{day.getDate()}</span>{status === "few" && <small>{english ? "few" : "wenige"}</small>}{status === "closed" && day >= startOfToday() && <small>{english ? "fully booked" : "ausgebucht"}</small>}</button>;
+                    return <button type="button" key={value} disabled={disabled} className={"calendar-day " + status + (selectedDate === value ? " selected" : "")} onClick={() => { setSelectedDate(value); setTime(slots[0] ?? ""); }} aria-label={`${formatDateNumeric(value)}, ${slots.length} ${english ? "available times" : "freie Zeiten"}`}><span>{day.getDate()}</span>{status === "few" && <small>{english ? "few" : "wenige"}</small>}{status === "closed" && day >= startOfToday() && <small>{english ? "fully booked" : "ausgebucht"}</small>}</button>;
                   })}
                 </div>
                 <div className="calendar-legend"><span><i className="available" /> {text.available}</span><span><i className="few" /> {text.few}</span><span><i className="full" /> {text.locked}</span></div>

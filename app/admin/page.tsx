@@ -348,7 +348,7 @@ export default function AdminPage() {
         }
         return next;
       });
-      setNotice(`Alle Termine für ${slotSimulator} am ${date} wurden ${enabled ? "freigeschaltet" : "gesperrt"}.`);
+      setNotice(`Alle Termine für ${slotSimulator} am ${formatDateNumeric(date)} wurden ${enabled ? "freigeschaltet" : "gesperrt"}.`);
     } else setDataError(data.error ?? "Die Tagesfreigabe konnte nicht geändert werden.");
     setSlotSaving(null);
   }
@@ -491,6 +491,12 @@ export default function AdminPage() {
             </div>
           </div>
         </header>
+        <div className="admin-list-heading dashboard-section-heading">
+          <div>
+            <span className="micro-label">Dashboard</span>
+            <h2>Übersicht</h2>
+          </div>
+        </div>
         <div className="admin-metrics">
           <article>
             <span>Alle Buchungen</span>
@@ -616,7 +622,7 @@ export default function AdminPage() {
                       setCalendarMonth(date.slice(0, 7));
                     }
                   }}
-                  aria-label={`${new Date(date + "T12:00:00").toLocaleDateString("de-AT", { weekday: "long", day: "numeric", month: "long" })}, ${dayBookings.length} Buchungen`}
+                  aria-label={`${formatDateNumeric(date)}, ${dayBookings.length} Buchungen`}
                 >
                   <span className="admin-calendar-date">
                     {Number(date.slice(-2))}
@@ -758,81 +764,9 @@ export default function AdminPage() {
             </section>
           )}
         </section>
-        <section
-          className="slot-manager"
-          aria-label="Buchbare Termine freischalten"
-        >
-          <header>
-            <div>
-              <span className="micro-label">Verfügbarkeit</span>
-              <h2>Termine freischalten</h2>
-              <p>
-                {selectedDateLabel
-                  ? selectedDateLabel
-                  : "Wählen Sie zuerst einen Tag im Kalender."}
-              </p>
-            </div>
-            <label>
-              Simulator
-              <select
-                value={slotSimulator}
-                onChange={(event) => {
-                  setSlotsLoading(true);
-                  setSlotSimulator(event.target.value);
-                }}
-              >
-                {simulators.map((simulator) => (
-                  <option key={simulator.name}>{simulator.name}</option>
-                ))}
-              </select>
-            </label>
-          </header>
-          {selectedCalendarDate ? (
-            <>
-            <div className="slot-day-actions">
-              <button type="button" disabled={slotsLoading || slotSaving !== null || selectedCalendarDate < today} onClick={() => void toggleAllSlots(selectedCalendarDate, true)}>Alle Termine freischalten</button>
-              <button type="button" disabled={slotsLoading || slotSaving !== null || selectedCalendarDate < today} onClick={() => void toggleAllSlots(selectedCalendarDate, false)}>Alle Termine sperren</button>
-            </div>
-            <div className="slot-toggle-grid">
-              {adminSlotTimes.map((time) => {
-                const key = `${selectedCalendarDate}|${time}`;
-                const enabled = enabledSlots.has(key);
-                return (
-                  <button
-                    type="button"
-                    key={time}
-                    className={enabled ? "enabled" : "locked"}
-                    disabled={
-                      slotsLoading ||
-                      slotSaving === key ||
-                      selectedCalendarDate < today
-                    }
-                    onClick={() => void toggleSlot(selectedCalendarDate, time)}
-                    aria-pressed={enabled}
-                  >
-                    <span>{time}</span>
-                    <small>
-                      {slotSaving === key
-                        ? "Speichert ..."
-                        : enabled
-                          ? "Freigeschaltet"
-                          : "Gesperrt"}
-                    </small>
-                  </button>
-                );
-              })}
-            </div>
-            </>
-          ) : (
-            <div className="slot-manager-empty">
-              Alle Termine sind standardmäßig gesperrt. Wählen Sie einen Tag und
-              schalten Sie die gewünschten Zeiten je Simulator frei.
-            </div>
-          )}
-        </section>
         <div className="admin-list-heading">
           <div>
-            <span className="micro-label">Detailansicht</span>
+            <span className="micro-label">Einzelbuchungen</span>
             <h2>
               {selectedDateLabel
                 ? `Buchungen am ${selectedDateLabel}`
@@ -1039,6 +973,67 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        <section
+          className="slot-manager"
+          aria-label="Zeitfenster freigeben oder sperren"
+        >
+          <header>
+            <div>
+              <span className="micro-label">Zeitfenster</span>
+              <h2>Freigeben oder sperren</h2>
+              <p>
+                {selectedDateLabel
+                  ? selectedDateLabel
+                  : "Wählen Sie zuerst einen Tag im Kalender."}
+              </p>
+            </div>
+            <label>
+              Simulator
+              <select
+                value={slotSimulator}
+                onChange={(event) => {
+                  setSlotsLoading(true);
+                  setSlotSimulator(event.target.value);
+                }}
+              >
+                {simulators.map((simulator) => (
+                  <option key={simulator.name}>{simulator.name}</option>
+                ))}
+              </select>
+            </label>
+          </header>
+          {selectedCalendarDate ? (
+            <>
+              <div className="slot-day-actions">
+                <button type="button" disabled={slotsLoading || slotSaving !== null || selectedCalendarDate < today} onClick={() => void toggleAllSlots(selectedCalendarDate, true)}>Alle Termine freischalten</button>
+                <button type="button" disabled={slotsLoading || slotSaving !== null || selectedCalendarDate < today} onClick={() => void toggleAllSlots(selectedCalendarDate, false)}>Alle Termine sperren</button>
+              </div>
+              <div className="slot-toggle-grid">
+                {adminSlotTimes.map((time) => {
+                  const key = `${selectedCalendarDate}|${time}`;
+                  const enabled = enabledSlots.has(key);
+                  return (
+                    <button
+                      type="button"
+                      key={time}
+                      className={enabled ? "enabled" : "locked"}
+                      disabled={slotsLoading || slotSaving === key || selectedCalendarDate < today}
+                      onClick={() => void toggleSlot(selectedCalendarDate, time)}
+                      aria-pressed={enabled}
+                    >
+                      <span>{time}</span>
+                      <small>{slotSaving === key ? "Speichert ..." : enabled ? "Freigeschaltet" : "Gesperrt"}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="slot-manager-empty">
+              Alle Termine sind standardmäßig gesperrt. Wählen Sie einen Tag und schalten Sie die gewünschten Zeiten je Simulator frei.
+            </div>
+          )}
+        </section>
         {managedBooking && (
           <BookingManager
             booking={managedBooking}

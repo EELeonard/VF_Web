@@ -7,6 +7,7 @@ import { isBookingTime, isSimulator } from "../../../lib/availability-db";
 import { bookingFitsAvailability, bookingOperationalWindow, viennaLocalToUtc } from "../../../lib/booking-time";
 import { simulators } from "../../../lib/site-data";
 import { ensureVouchersDatabase, normalizeCustomerEmail, normalizeVoucherCode, validateVoucher } from "../../../lib/vouchers-db";
+import { saveCustomerFromBooking } from "../../../lib/customers-db";
 
 const statuses = new Set<BookingStatus>(["pending", "confirmed", "completed", "cancelled"]);
 
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
   if (voucher) { await ensureVouchersDatabase(db); await db.prepare("INSERT INTO voucher_redemptions (voucher_id,booking_id,customer_email) VALUES (?,?,?)").bind(voucher.voucher.id,insert.meta.last_row_id,normalizedEmail).run(); }
   const booking = await db.prepare("SELECT * FROM bookings WHERE id=?").bind(insert.meta.last_row_id).first<BookingRecord>();
   if (!booking) return Response.json({ error: "Die Buchung konnte nicht geladen werden." }, { status: 500 });
+  await saveCustomerFromBooking(db, { email: customerEmail, name: customerName, phone: customerPhone }).catch(() => undefined);
   const delivery = await deliverBookingEmail(status === "confirmed" ? "confirmation" : "request",booking,db,env);
   return Response.json({ created:true,id:booking.id,reference,emailSent:delivery.sent }, { status:201 });
 }

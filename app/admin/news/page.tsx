@@ -188,7 +188,7 @@ export default function NewsAdminPage() {
                   <div className="content-card-top">
                     <span className="publication-state published">Aktiv</span>
                     <time>
-                      {new Date(post.updated_at).toLocaleDateString("de-AT", { timeZone: "Europe/Vienna" })}
+                      {formatDateTime24(post.updated_at).split(",")[0]}
                     </time>
                   </div>
                   <h3>{post.title_de}</h3>
