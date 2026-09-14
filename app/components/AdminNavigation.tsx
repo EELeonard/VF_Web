@@ -17,7 +17,7 @@ export function AdminNavigation({ active }: { active: "bookings" | "news" | "vou
       <a className={active === "news" ? "active" : ""} href="/admin/news"><span>◉</span>News und Aktionen</a>
       <a className={active === "vouchers" ? "active" : ""} href="/admin/vouchers"><span>◇</span>Gutscheincodes</a>
       <a className={active === "users" ? "active" : ""} href="/admin/users"><span>♙</span>Benutzer</a>
-      <a href="/buchen"><span>＋</span>Neue Buchung</a>
+      <a href="/admin/bookings/new"><span>＋</span>Neue Buchung</a>
       <a href="/"><span>↗</span>Website ansehen</a>
     </nav>
     <button type="button" onClick={() => void logout()}><span>↪</span>Abmelden</button>
