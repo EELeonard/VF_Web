@@ -1037,6 +1037,14 @@ footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64p
 .active-news-directory h2 { margin:5px 0 0; }
 .active-news-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; padding:18px; }
 .active-news-grid .content-list-card { margin:0; border:1px solid var(--vf-separator); border-radius:18px; background:var(--vf-background); }
+.voucher-directory>header { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.voucher-directory>header>span { color:var(--vf-secondary); font-size:12px; }
+.voucher-directory-filter { padding:18px 18px 0; }
+.voucher-directory-filter .voucher-email-filter { margin:0; }
+.voucher-directory-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; padding:18px; }
+.voucher-directory-grid .voucher-card { margin:0; padding:22px; border:1px solid var(--vf-separator); border-radius:18px; background:var(--vf-background); }
+.voucher-editor-modal { width:min(760px,100%); }
+.voucher-editor-modal label,.voucher-editor-modal .management-row label { display:grid; gap:7px; color:var(--vf-secondary); font-size:12px; }
 .news-publisher-modal { width:min(940px,100%); }
 .news-publisher-modal fieldset { display:grid; gap:12px; margin:0; padding:16px; border:1px solid var(--vf-separator); border-radius:16px; }
 .news-publisher-modal fieldset label,.news-publisher-modal .management-row label { display:grid; gap:7px; color:var(--vf-secondary); font-size:12px; }
@@ -1229,6 +1237,7 @@ footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64p
   .member-row>.user-state { grid-column:2; justify-self:start; }
   .member-menu-wrap { grid-column:3; grid-row:1/3; }
   .active-news-grid { grid-template-columns:1fr; padding:10px; }
+  .voucher-directory-grid { grid-template-columns:1fr; padding:10px; }
 }
 
 @media (prefers-reduced-motion:reduce) {
