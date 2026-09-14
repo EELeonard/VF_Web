@@ -5,7 +5,7 @@ import type { BookingCommunication } from "../lib/booking-communications-db";
 import type { BookingRecord } from "../lib/bookings-db";
 import { BOOKING_TIMES } from "../lib/availability-db";
 import { bookingFitsAvailability } from "../lib/booking-time";
-import { formatDateNumeric } from "../lib/date-format";
+import { formatDateNumeric, formatDateTime24 } from "../lib/date-format";
 
 export function BookingManager({ booking, onClose, onUpdated }: { booking: BookingRecord; onClose: () => void; onUpdated: () => Promise<void> }) {
   const [current, setCurrent] = useState(booking);
@@ -80,6 +80,6 @@ export function BookingManager({ booking, onClose, onUpdated }: { booking: Booki
     {mode === "email" && <form className="drawer-form" onSubmit={(event) => void submitMessage(event, "email")}><h3>E-Mail an {current.customer_email}</h3><label>Betreff<input name="subject" required maxLength={200} /></label><label>Nachricht<textarea name="message" required maxLength={8000} rows={6} /></label><button className="button primary" disabled={saving} type="submit">E-Mail senden</button></form>}
     {error && <div className="admin-error" role="alert">{error}</div>}{notice && <div className="admin-notice" role="status">{notice}</div>}
     <section className="internal-note"><div><span className="micro-label">Nur intern sichtbar</span><h3>Interne Anmerkungen</h3></div><textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={4000} rows={4} placeholder="Übergaben, Kundenwünsche oder operative Hinweise" /><button type="button" disabled={saving} onClick={() => void action({ action: "note", note })}>Notiz speichern</button></section>
-    <section className="communication-history"><header><div><span className="micro-label">Kommunikationsakte</span><h3>E-Mail-Verlauf</h3></div><span>{communications.length} Einträge</span></header>{communications.length === 0 ? <p className="communication-empty">Noch keine protokollierten Nachrichten. Frühere Status-E-Mails bleiben oben in der Buchungsübersicht erkennbar.</p> : communications.map((item) => <article className={item.direction} key={item.id}><div><span>{item.direction === "outbound" ? "Gesendet" : "Empfangen"}</span><time>{new Date(item.sent_at).toLocaleString("de-AT")}</time></div><h4>{item.subject}</h4><p>{item.body}</p><small>{item.from_email} → {item.to_email} · {item.delivery_status === "failed" ? "Zustellung fehlgeschlagen" : item.delivery_status === "received" ? "Erfasst" : "Versendet"}</small></article>)}</section>
+    <section className="communication-history"><header><div><span className="micro-label">Kommunikationsakte</span><h3>E-Mail-Verlauf</h3></div><span>{communications.length} Einträge</span></header>{communications.length === 0 ? <p className="communication-empty">Noch keine protokollierten Nachrichten. Frühere Status-E-Mails bleiben oben in der Buchungsübersicht erkennbar.</p> : communications.map((item) => <article className={item.direction} key={item.id}><div><span>{item.direction === "outbound" ? "Gesendet" : "Empfangen"}</span><time>{formatDateTime24(item.sent_at)}</time></div><h4>{item.subject}</h4><p>{item.body}</p><small>{item.from_email} → {item.to_email} · {item.delivery_status === "failed" ? "Zustellung fehlgeschlagen" : item.delivery_status === "received" ? "Erfasst" : "Versendet"}</small></article>)}</section>
   </aside></div>;
 }

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { AdminNavigation } from "../../components/AdminNavigation";
 import type { AdminIdentity } from "../../lib/admin-auth";
 import type { NewsPost } from "../../lib/admin-db";
+import { formatDateTime24, formatDateTimeInput, parseDateTimeInput } from "../../lib/date-format";
 type Editor = {
   id?: number;
   titleDe: string;
@@ -27,7 +28,6 @@ const emptyEditor: Editor = {
   startsAt: "",
   endsAt: "",
 };
-const toInputDate = (value: string | null) => (value ? value.slice(0, 16) : "");
 
 export default function NewsAdminPage() {
   const router = useRouter(),
@@ -75,8 +75,8 @@ export default function NewsAdminPage() {
       linkUrl: post.link_url,
       linkLabelDe: post.link_label_de,
       linkLabelEn: post.link_label_en,
-      startsAt: toInputDate(post.starts_at),
-      endsAt: toInputDate(post.ends_at),
+      startsAt: formatDateTimeInput(post.starts_at),
+      endsAt: formatDateTimeInput(post.ends_at),
     });
     setModalOpen(true);
     setNotice("");
@@ -91,7 +91,7 @@ export default function NewsAdminPage() {
         method: editor.id ? "PATCH" : "POST",
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...editor, status: "published" }),
+        body: JSON.stringify({ ...editor, startsAt: parseDateTimeInput(editor.startsAt), endsAt: parseDateTimeInput(editor.endsAt), status: "published" }),
       }),
       data = await response.json();
     if (response.ok) {
@@ -195,10 +195,10 @@ export default function NewsAdminPage() {
                   <p>{post.excerpt_de}</p>
                   <small>
                     {post.starts_at
-                      ? `Ab ${new Date(post.starts_at).toLocaleString("de-AT", { timeZone: "Europe/Vienna" })}`
+                      ? `Ab ${formatDateTime24(post.starts_at)}`
                       : "Sofort"}
                     {post.ends_at
-                      ? ` bis ${new Date(post.ends_at).toLocaleString("de-AT", { timeZone: "Europe/Vienna" })}`
+                      ? ` bis ${formatDateTime24(post.ends_at)}`
                       : ", ohne Enddatum"}
                   </small>
                   <div>
@@ -336,7 +336,10 @@ export default function NewsAdminPage() {
                 <label>
                   Sichtbar ab, optional
                   <input
-                    type="datetime-local"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d{2}\.\d{2}\.\d{4} (?:[01]\d|2[0-3]):[0-5]\d"
+                    placeholder="TT.MM.JJJJ HH:MM"
                     value={editor.startsAt}
                     onChange={(event) =>
                       setEditor({ ...editor, startsAt: event.target.value })
@@ -346,7 +349,10 @@ export default function NewsAdminPage() {
                 <label>
                   Sichtbar bis, optional
                   <input
-                    type="datetime-local"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d{2}\.\d{2}\.\d{4} (?:[01]\d|2[0-3]):[0-5]\d"
+                    placeholder="TT.MM.JJJJ HH:MM"
                     value={editor.endsAt}
                     onChange={(event) =>
                       setEditor({ ...editor, endsAt: event.target.value })
