@@ -91,10 +91,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authenticated) return;
     const controller = new AbortController();
-    fetch(
-      `/api/admin/slots?simulator=${encodeURIComponent(slotSimulator)}&month=${calendarMonth}`,
-      { credentials: "same-origin", signal: controller.signal },
-    )
+    const loadSlots = () => fetch(
+        `/api/admin/slots?simulator=${encodeURIComponent(slotSimulator)}&month=${calendarMonth}`,
+        { credentials: "same-origin", cache: "no-store", signal: controller.signal },
+      )
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok)
@@ -124,13 +124,30 @@ export default function AdminPage() {
         );
       })
       .finally(() => setSlotsLoading(false));
-    return () => controller.abort();
+    void loadSlots();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadSlots();
+    }, 10_000);
+    return () => {
+      window.clearInterval(interval);
+      controller.abort();
+    };
   }, [authenticated, calendarMonth, slotSimulator]);
 
-  async function loadBookings() {
-    setDataError("");
+  useEffect(() => {
+    if (!authenticated) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      void Promise.all([loadBookings(true), loadInstructorData(true)]);
+    }, 10_000);
+    return () => window.clearInterval(interval);
+  }, [authenticated]);
+
+  async function loadBookings(silent = false) {
+    if (!silent) setDataError("");
     const response = await fetch("/api/admin/bookings", {
       credentials: "same-origin",
+      cache: "no-store",
     });
     if (response.status === 401) {
       setAuthenticated(false);
@@ -148,15 +165,16 @@ export default function AdminPage() {
     setBookings(data.bookings);
   }
 
-  async function loadInstructorData() {
+  async function loadInstructorData(silent = false) {
     const response = await fetch("/api/admin/instructors", {
         credentials: "same-origin",
+        cache: "no-store",
       }),
       data = await response.json();
     if (response.ok) {
       setInstructors(data.instructors);
       setInstructorAssignments(data.assignments);
-    } else
+    } else if (!silent)
       setDataError(data.error ?? "Instructoren konnten nicht geladen werden.");
   }
 

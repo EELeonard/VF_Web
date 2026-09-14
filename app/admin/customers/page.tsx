@@ -30,6 +30,7 @@ export default function CustomersPage() {
   }, [router]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const interval=window.setInterval(()=>{if(document.visibilityState==="visible")void load();},10_000);return()=>window.clearInterval(interval); }, [load]);
 
   const visible = useMemo(() => {
     const value = query.trim().toLowerCase();

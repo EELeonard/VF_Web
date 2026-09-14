@@ -78,6 +78,10 @@ export default function InstructorAvailability() {
   }, [month, router]);
   useEffect(() => {
     void load();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load();
+    }, 10_000);
+    return () => window.clearInterval(interval);
   }, [load]);
   async function setDay(
     date: string,

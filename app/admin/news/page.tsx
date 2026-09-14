@@ -42,6 +42,7 @@ export default function NewsAdminPage() {
   const loadPosts = useCallback(async () => {
     const response = await fetch("/api/admin/news", {
       credentials: "same-origin",
+      cache: "no-store",
     });
     if (response.status === 401) {
       router.replace("/admin");
@@ -65,6 +66,13 @@ export default function NewsAdminPage() {
       .catch(() => setError("Die Sitzung konnte nicht geprüft werden."))
       .finally(() => setChecking(false));
   }, [loadPosts, router]);
+  useEffect(() => {
+    if (!identity) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadPosts();
+    }, 10_000);
+    return () => window.clearInterval(interval);
+  }, [identity, loadPosts]);
   function edit(post: NewsPost) {
     setEditor({
       id: post.id,

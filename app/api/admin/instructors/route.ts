@@ -19,7 +19,7 @@ export async function GET(request:Request) {
     db.prepare("SELECT instructor_id,available_date,available_time FROM instructor_availability WHERE available_date >= date('now') ORDER BY available_date,available_time").all<{instructor_id:number;available_date:string;available_time:string}>(),
     db.prepare("SELECT instructor_id,available_date,available_from,available_until FROM instructor_availability_ranges WHERE available_date >= date('now') ORDER BY available_date").all<{instructor_id:number;available_date:string;available_from:string;available_until:string}>(),
   ]);
-  return Response.json({instructors:instructors.results.map(item=>({...item,capabilities:capabilities.results.filter(capability=>capability.instructor_id===item.id).map(capability=>capability.simulator),availability:availability.results.filter(slot=>slot.instructor_id===item.id),availabilityRanges:availabilityRanges.results.filter(range=>range.instructor_id===item.id)})), assignments:assignments.results});
+  return Response.json({instructors:instructors.results.map(item=>({...item,capabilities:capabilities.results.filter(capability=>capability.instructor_id===item.id).map(capability=>capability.simulator),availability:availability.results.filter(slot=>slot.instructor_id===item.id),availabilityRanges:availabilityRanges.results.filter(range=>range.instructor_id===item.id)})), assignments:assignments.results},{headers:{"cache-control":"no-store, no-cache, must-revalidate"}});
 }
 
 export async function POST(request:Request) {
