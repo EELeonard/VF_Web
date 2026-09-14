@@ -2,7 +2,8 @@
 
 FROM node:24-bookworm-slim AS dependencies
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package.json ./package.json
+COPY package-lock.json ./package-lock.json
 RUN npm ci --ignore-scripts --no-audit --no-fund
 
 FROM node:24-bookworm-slim AS build
@@ -17,7 +18,8 @@ ENV NODE_ENV=production
 ENV PORT=3000
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json ./package.json
+COPY package-lock.json ./package-lock.json
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
   && test -x node_modules/.bin/vinext
 
