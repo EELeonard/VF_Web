@@ -29,6 +29,7 @@ function rangeLabel(range?: Range) {
   if (range.available_until === "23:59") return `Ab ${range.available_from}`;
   return `${range.available_from} bis ${range.available_until}`;
 }
+const valid24HourTime = (value: string) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
 
 export default function InstructorAvailability() {
   const router = useRouter(),
@@ -242,28 +243,38 @@ export default function InstructorAvailability() {
               <label>
                 Verfügbar ab
                 <input
-                  type="time"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="(?:[01]\d|2[0-3]):[0-5]\d"
+                  placeholder="HH:MM"
+                  aria-label="Verfügbar ab im 24-Stunden-Format"
                   value={from}
                   onChange={(event) => {
                     setFrom(event.target.value);
                     setDraftMode("custom");
                   }}
                 />
+                <small>24-Stunden-Format, zum Beispiel 14:30</small>
               </label>
               <label>
                 Verfügbar bis
                 <input
-                  type="time"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="(?:[01]\d|2[0-3]):[0-5]\d"
+                  placeholder="HH:MM"
+                  aria-label="Verfügbar bis im 24-Stunden-Format"
                   value={until}
                   onChange={(event) => {
                     setUntil(event.target.value);
                     setDraftMode("custom");
                   }}
                 />
+                <small>24-Stunden-Format, zum Beispiel 18:00</small>
               </label>
               <button
                 className={customRangeSelected ? "available" : ""}
-                disabled={saving || from >= until}
+                disabled={saving || !valid24HourTime(from) || !valid24HourTime(until) || from >= until}
                 onClick={() => void setDay(selected, "custom")}
               >
                 <b>Zeitfenster speichern</b>
