@@ -327,6 +327,31 @@ export default function AdminPage() {
     setSlotSaving(null);
   }
 
+  async function toggleAllSlots(date: string, enabled: boolean) {
+    setSlotSaving("all");
+    setDataError("");
+    const response = await fetch("/api/admin/slots", {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ simulator: slotSimulator, date, enabled, all: true }),
+    });
+    const data = await response.json();
+    if (response.ok) {
+      setEnabledSlots((current) => {
+        const next = new Set(current);
+        for (const time of adminSlotTimes) {
+          const key = `${date}|${time}`;
+          if (enabled) next.add(key);
+          else next.delete(key);
+        }
+        return next;
+      });
+      setNotice(`Alle Termine für ${slotSimulator} am ${date} wurden ${enabled ? "freigeschaltet" : "gesperrt"}.`);
+    } else setDataError(data.error ?? "Die Tagesfreigabe konnte nicht geändert werden.");
+    setSlotSaving(null);
+  }
+
   const visibleBookings = useMemo(() => {
     const query = search.trim().toLowerCase();
     return bookings.filter((booking) => {
@@ -679,17 +704,14 @@ export default function AdminPage() {
                           booking.status !== "cancelled",
                       ),
                     requiredTimes = requiredBookings.map((booking) => booking.flight_time),
-                    qualified = instructors.filter(
-                      (item) =>
-                        item.active &&
-                        (item.capabilities ?? []).includes(simulator.name),
-                    ),
-                    available = qualified.filter((item) => {
+                    activeInstructors = instructors.filter((item) => item.active),
+                    isAvailable = (item: Instructor) => {
+                      if (!(item.capabilities ?? []).includes(simulator.name)) return false;
                       const range = (item.availabilityRanges ?? []).find(entry => entry.available_date === selectedCalendarDate);
                       if (!range) return false;
-                      const minutes = (value:string) => { const [hours, mins] = value.split(":").map(Number); return hours * 60 + mins; };
                       return requiredBookings.length === 0 || requiredBookings.some(booking => bookingFitsAvailability(booking.flight_time, booking.duration, range.available_from, range.available_until));
-                    });
+                    },
+                    available = activeInstructors.filter(isAvailable);
                   return (
                     <article key={simulator.name}>
                       <div>
@@ -724,9 +746,9 @@ export default function AdminPage() {
                               ? "Instructor wählen"
                               : "Niemand verfügbar"}
                         </option>
-                        {available.map((item) => (
-                          <option value={item.id} key={item.id}>
-                            {item.name}
+                        {activeInstructors.map((item) => (
+                          <option className={isAvailable(item) ? "instructor-option-available" : ""} disabled={!isAvailable(item)} value={item.id} key={item.id}>
+                            {isAvailable(item) ? `✓ ${item.name} · verfügbar` : `${item.name} · nicht verfügbar`}
                           </option>
                         ))}
                       </select>
@@ -777,6 +799,11 @@ export default function AdminPage() {
             </label>
           </header>
           {selectedCalendarDate ? (
+            <>
+            <div className="slot-day-actions">
+              <button type="button" disabled={slotsLoading || slotSaving !== null || selectedCalendarDate < today} onClick={() => void toggleAllSlots(selectedCalendarDate, true)}>Alle Termine freischalten</button>
+              <button type="button" disabled={slotsLoading || slotSaving !== null || selectedCalendarDate < today} onClick={() => void toggleAllSlots(selectedCalendarDate, false)}>Alle Termine sperren</button>
+            </div>
             <div className="slot-toggle-grid">
               {adminSlotTimes.map((time) => {
                 const key = `${selectedCalendarDate}|${time}`;
@@ -806,6 +833,7 @@ export default function AdminPage() {
                 );
               })}
             </div>
+            </>
           ) : (
             <div className="slot-manager-empty">
               Alle Termine sind standardmäßig gesperrt. Wählen Sie einen Tag und
