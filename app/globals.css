@@ -363,6 +363,10 @@ footer { background:#051525; color:#fff; padding:70px 5vw 26px; }
 .admin-calendar-legend i.confirmed { background:#4c9a6d; }
 .admin-calendar-legend i.completed { background:#4c7dbc; }
 .admin-calendar-legend i.cancelled { background:#aa7777; }
+@media (prefers-color-scheme:light) {
+  .admin-calendar-footer { border-color:#d2d2d7; background:#f5f5f7; color:#515154; }
+  .admin-calendar-legend,.admin-calendar-legend span { color:#515154; }
+}
 .admin-list-heading { display:flex; align-items:end; justify-content:space-between; gap:20px; margin:32px 0 12px; }
 .admin-list-heading button { border:0; background:transparent; color:var(--blue); font-size:10px; text-decoration:underline; cursor:pointer; }
 .slot-manager { margin-bottom:24px; padding:24px; border-radius:24px; background:var(--vf-surface); box-shadow:var(--vf-shadow); }
@@ -1007,8 +1011,8 @@ footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64p
 .capability-picker label { display:flex; align-items:center; gap:7px; padding:8px 10px; border:1px solid var(--vf-separator); border-radius:10px; background:var(--vf-background); color:var(--vf-label); font-size:12px; }
 .users-topbar { align-items:flex-end; }
 .users-topbar p { margin:8px 0 0; color:var(--vf-secondary); }
-.admin-topbar-actions { display:flex; align-items:center; gap:16px; }
 .add-member-button { width:52px; height:52px; display:grid; place-items:center; flex:0 0 52px; border:0; border-radius:50%; background:var(--blue); color:white; box-shadow:0 8px 22px rgba(0,113,227,.28); cursor:pointer; font-size:30px; font-weight:300; line-height:1; text-decoration:none; }
+.calendar-add-booking { width:42px; height:42px; display:grid; place-items:center; flex:0 0 42px; border-radius:50%; background:var(--blue); color:#fff; box-shadow:0 8px 20px rgba(0,113,227,.25); font-size:26px; font-weight:300; line-height:1; text-decoration:none; }
 .team-directory { overflow:visible; margin-top:26px; border:1px solid var(--vf-separator); border-radius:24px; background:var(--vf-surface); box-shadow:var(--vf-shadow); }
 .team-directory>header { padding:24px; border-bottom:1px solid var(--vf-separator); }
 .team-directory h2 { margin:5px 0 0; }

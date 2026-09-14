@@ -483,14 +483,11 @@ export default function AdminPage() {
             <span className="micro-label">Operations Center</span>
             <h1>Buchungen</h1>
           </div>
-          <div className="admin-topbar-actions">
-            <Link className="add-member-button" href="/admin/bookings/new" aria-label="Neue Buchung anlegen" title="Neue Buchung anlegen">+</Link>
-            <div className="admin-user">
-              <span>A</span>
-              <div>
-                <b>Administrator</b>
-                <small>Vienna Flight</small>
-              </div>
+          <div className="admin-user">
+            <span>A</span>
+            <div>
+              <b>Administrator</b>
+              <small>Vienna Flight</small>
             </div>
           </div>
         </header>
@@ -567,6 +564,7 @@ export default function AdminPage() {
               </h2>
             </div>
             <div className="admin-calendar-controls">
+              <Link className="calendar-add-booking" href="/admin/bookings/new" aria-label="Neue Buchung anlegen" title="Neue Buchung anlegen">+</Link>
               <button
                 type="button"
                 onClick={() => {
@@ -826,9 +824,9 @@ export default function AdminPage() {
           <table className="booking-table">
             <thead>
               <tr>
-                <th>Referenz und Kunde</th>
+                <th>Kunde und Referenz</th>
                 <th>Flugerlebnis</th>
-                <th>Termin</th>
+                <th>Uhrzeit und Datum</th>
                 <th>Anmerkung</th>
                 <th>E-Mail</th>
                 <th>Status</th>
@@ -842,8 +840,8 @@ export default function AdminPage() {
                   key={booking.id}
                 >
                   <td>
-                    <strong>{booking.reference}</strong>
-                    <span>{booking.customer_name}</span>
+                    <strong>{booking.customer_name}</strong>
+                    <span>{booking.reference}</span>
                     <small>
                       {booking.customer_email}
                       <br />
@@ -875,8 +873,8 @@ export default function AdminPage() {
                     )}
                   </td>
                   <td>
-                    <strong>{booking.gift ? "Geschenkgutschein" : formatDateNumeric(booking.flight_date)}</strong>
-                    {!booking.gift && <span>{booking.flight_time} Uhr</span>}
+                    <strong>{booking.gift ? "Geschenkgutschein" : `${booking.flight_time} Uhr`}</strong>
+                    {!booking.gift && <span>{formatDateNumeric(booking.flight_date)}</span>}
                     {booking.proposed_date && (
                       <small>
                         Vorschlag: {formatDateNumeric(booking.proposed_date)},{" "}
