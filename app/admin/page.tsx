@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { BookingRecord, BookingStatus } from "../lib/bookings-db";
 import { simulators } from "../lib/site-data";
 import { BookingManager } from "../components/BookingManager";
+import { AdminNavigation } from "../components/AdminNavigation";
 import type {
   Instructor,
   InstructorDayAssignment,
@@ -259,15 +260,6 @@ export default function AdminPage() {
     await loadBookings();
   }
 
-  async function logout() {
-    await fetch("/api/admin/logout", {
-      method: "POST",
-      credentials: "same-origin",
-    });
-    setAuthenticated(false);
-    setBookings([]);
-  }
-
   async function updateStatus(id: number, status: BookingStatus) {
     setSavingId(id);
     setDataError("");
@@ -471,37 +463,7 @@ export default function AdminPage() {
 
   return (
     <main className="admin-shell">
-      <aside className="admin-nav">
-        <a className="brand" href="/">
-          <span className="brand-mark">VF</span>
-          <span>
-            VIENNA <b>FLIGHT</b>
-          </span>
-        </a>
-        <nav>
-          <a className="active" href="/admin">
-            <span>▦</span>Buchungen
-          </a>
-          <a href="/admin/news">
-            <span>◉</span>News und Aktionen
-          </a>
-          <a href="/admin/vouchers">
-            <span>◇</span>Gutscheincodes
-          </a>
-          <a href="/admin/users">
-            <span>♙</span>Benutzer
-          </a>
-          <a href="/buchen">
-            <span>＋</span>Neue Buchung
-          </a>
-          <a href="/">
-            <span>↗</span>Website ansehen
-          </a>
-        </nav>
-        <button onClick={logout}>
-          <span>↪</span>Abmelden
-        </button>
-      </aside>
+      <AdminNavigation active="bookings" />
       <section className="admin-content">
         <header className="admin-topbar">
           <div>

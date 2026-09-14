@@ -109,7 +109,8 @@ export default function InstructorAvailability() {
     } else {
       setSelected(date);
       setDraftMode("unavailable");
-      if (date >= new Date().toISOString().slice(0, 10)) void setDay(date, "full_day", "00:00", "23:59");
+      const hasSchedule = appointmentsByDate.has(date) || assignmentsByDate.has(date);
+      if (!hasSchedule && date >= new Date().toISOString().slice(0, 10)) void setDay(date, "full_day", "00:00", "23:59");
     }
   }
   async function logout() {

@@ -782,6 +782,7 @@ footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64p
 .admin-nav nav a:hover,.admin-nav nav a.active { background:rgba(255,255,255,.1); }
 .admin-nav nav a.active { box-shadow:none; color:#fff; }
 .admin-nav nav span,.admin-nav>button span { color:#75b7ff; }
+.admin-menu-button { display:none!important; }
 .admin-content { max-width:1600px; padding:42px 4vw 80px; }
 .admin-topbar h1 { font:700 46px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif; letter-spacing:-.04em; }
 .admin-user>span { background:var(--blue); }
@@ -835,6 +836,7 @@ footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64p
 .drawer-status>b { font-size:12px; }
 .drawer-actions { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
 .drawer-actions button,.internal-note button { min-height:42px; padding:10px 13px; border:0; border-radius:11px; background:var(--vf-background); color:var(--vf-label); font-weight:650; cursor:pointer; }
+.drawer-actions button.primary-action { background:var(--blue); color:#fff; }
 .drawer-form,.internal-note,.communication-history { margin-top:22px; padding:22px; border-radius:18px; background:var(--vf-background); }
 .drawer-form h3,.internal-note h3,.communication-history h3 { margin:5px 0 16px; font-size:20px; }
 .drawer-form>div { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -1043,6 +1045,7 @@ footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64p
 .instructor-appointment>span { display:grid; gap:3px; }
 .instructor-appointment small { color:var(--vf-secondary); }
 .availability-times>div { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.availability-times>.instructor-schedule { grid-template-columns:1fr; }
 .availability-times button { min-height:76px; display:grid; gap:5px; padding:12px; border-radius:14px; text-align:left; }
 .availability-times button span { color:var(--vf-secondary); font-size:12px; }
 .availability-times button.available { border-color:var(--blue); background:rgba(0,113,227,.12); }
@@ -1096,9 +1099,9 @@ footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64p
   .calendar-instructor-planning>div { grid-template-columns:1fr; }
   .calendar-instructor-planning article { grid-template-columns:1fr; }
   .site-header { top:10px; height:58px; }
-  .nav.open { top:66px; left:0; right:0; padding:10px; border:1px solid var(--vf-glass-border); border-radius:18px; background:var(--vf-glass); color:var(--vf-label); box-shadow:var(--vf-shadow); -webkit-backdrop-filter:blur(28px) saturate(1.45); backdrop-filter:blur(28px) saturate(1.45); }
-  .nav.open a { min-height:44px; display:flex; align-items:center; }
-  .menu-button { display:grid; place-items:center; width:44px; height:44px; color:var(--vf-label); cursor:pointer; }
+  .nav.open { top:66px; left:0; right:0; padding:10px; border:1px solid rgba(255,255,255,.2); border-radius:18px; background:#1c1c1e; color:#fff; box-shadow:0 18px 44px rgba(0,0,0,.38); -webkit-backdrop-filter:none; backdrop-filter:none; }
+  .nav.open a { min-height:44px; display:flex; align-items:center; color:#fff; font-weight:650; }
+  .menu-button { display:grid; place-items:center; width:44px; height:44px; border-radius:12px; background:#f5f5f7; color:#1d1d1f; cursor:pointer; }
   .language-switch { margin-left:auto; }
   .hero-content { width:92%; }
   .experience,.story-section,.professional-intro,.event-feature,.anxiety-section { width:calc(100% - 24px); }
@@ -1157,7 +1160,12 @@ footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64p
   .login-brand { min-height:330px; margin:0; border-radius:26px; }
   .login-panel { padding:52px 16px; }
   .admin-shell { display:block; }
-  .admin-nav { min-height:0; height:auto; margin:8px; top:8px; border-radius:20px; }
+  .admin-nav { z-index:50; min-height:0; height:auto; margin:8px; top:8px; border-radius:20px; }
+  .admin-nav .admin-menu-button { display:flex!important; min-width:84px; min-height:44px; justify-content:center; margin:0 0 0 auto; padding:8px 12px; border:1px solid rgba(255,255,255,.18); color:#fff; font-size:13px; }
+  .admin-nav .admin-menu-button span { color:#75b7ff; font-size:18px; }
+  .admin-nav nav.open { position:absolute; top:64px; left:0; right:0; display:flex; margin:0; padding:10px; border:1px solid rgba(255,255,255,.16); border-radius:18px; background:#1c1c1e; box-shadow:0 18px 44px rgba(0,0,0,.45); }
+  .admin-nav nav.open a { justify-content:flex-start; min-height:48px; color:#f5f5f7; font-size:15px; }
+  .admin-nav nav.open a span { min-width:24px; font-size:18px; }
   .admin-content { padding:30px 12px 70px; }
   .open-requests>div,.drawer-actions,.drawer-form>div { grid-template-columns:1fr; }
   .booking-drawer { padding:24px 18px; }

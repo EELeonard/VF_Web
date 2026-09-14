@@ -34,7 +34,7 @@ export default function BookingPage() {
     available:"Released", few:"Few times", locked:"Fully booked", step3:"Start time", step4:"Your details", step4Help:"For confirmation and any questions about your booking.",
     name:"Name", namePlaceholder:"First and last name", email:"Email", phone:"Telephone", gift:"Order as a gift voucher", remark:"Booking note", optional:"optional", remarkPlaceholder:"For example your preferred route, occasion, experience or accessibility requirements", voucherCode:"Voucher code", voucherPlaceholder:"Enter code", applyVoucher:"Apply code", voucherApplied:"Voucher applied", voucherEmail:"Enter your email address before checking the code.", discount:"Discount",
     consent:"I agree to the processing of my data for this booking request.", selection:"Your selection", date:"Date", start:"Start time", duration:"Duration", voucher:"Voucher", yes:"Yes", no:"No", total:"Total price",
-    savedEmail:"Your request receipt has been sent by email.", savedNoEmail:"Your request is saved. Our team will check email delivery.", pending:"A binding confirmation follows after review.", bookingNote:"No payment is required yet. The appointment is confirmed after personal review.",
+    savedEmail:"Your request receipt has been sent by email.", savedNoEmail:"Your request has been saved.", pending:"A binding confirmation follows after review.", bookingNote:"No payment is required yet. The appointment is confirmed after personal review.",
   } : {
     eyebrow:"Online Buchung", title:"Wählen Sie Ihren", titleAccent:"Flugtermin.", intro:"Freigeschaltete Termine für die kommenden sechs Monate. Anfrage in wenigen Schritten abschließen.",
     received:"Buchungsanfrage eingegangen", success:"Ihr Flug ist vorgemerkt.", reference:"Referenz", another:"Weitere Anfrage", home:"Zur Startseite",
@@ -43,7 +43,7 @@ export default function BookingPage() {
     available:"Freigeschaltet", few:"Wenige Zeiten", locked:"Ausgebucht", step3:"Startzeit", step4:"Ihre Daten", step4Help:"Für die Buchungsbestätigung und eventuelle Rückfragen.",
     name:"Name", namePlaceholder:"Vor- und Nachname", email:"E-Mail", phone:"Telefon", gift:"Als Gutschein bestellen", remark:"Anmerkung zur Buchung", optional:"optional", remarkPlaceholder:"Zum Beispiel Wunschroute, Anlass, Vorkenntnisse oder besondere Anforderungen", voucherCode:"Gutscheincode", voucherPlaceholder:"Code eingeben", applyVoucher:"Code anwenden", voucherApplied:"Gutschein angewendet", voucherEmail:"Bitte geben Sie zuerst Ihre E-Mail-Adresse ein.", discount:"Rabatt",
     consent:"Ich stimme der Verarbeitung meiner Daten zur Bearbeitung der Buchungsanfrage zu.", selection:"Ihre Auswahl", date:"Datum", start:"Startzeit", duration:"Flugdauer", voucher:"Gutschein", yes:"Ja", no:"Nein", total:"Gesamtpreis",
-    savedEmail:"Die Eingangsbestätigung wurde per E-Mail versendet.", savedNoEmail:"Die Anfrage ist gespeichert. Die E-Mail-Zustellung wird vom Team geprüft.", pending:"Eine verbindliche Bestätigung folgt nach der Freigabe.", bookingNote:"Noch keine Zahlung erforderlich. Der Termin wird nach persönlicher Prüfung bestätigt.",
+    savedEmail:"Die Eingangsbestätigung wurde per E-Mail versendet.", savedNoEmail:"Die Anfrage ist gespeichert.", pending:"Eine verbindliche Bestätigung folgt nach der Freigabe.", bookingNote:"Noch keine Zahlung erforderlich. Der Termin wird nach persönlicher Prüfung bestätigt.",
   };
   const initial = useMemo(() => startOfToday(), []);
   const [displayMonth, setDisplayMonth] = useState(new Date(initial.getFullYear(), initial.getMonth(), 1));
