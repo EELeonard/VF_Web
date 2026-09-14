@@ -32,6 +32,14 @@ function formatDate(date: string, language: "de" | "en") {
 
 function contentFor(kind: EmailKind, booking: BookingRecord) {
   const language = booking.language === "en" ? "en" : "de";
+  if (booking.gift) {
+    if (language === "en") return kind === "confirmation"
+      ? { subject: `Gift voucher confirmed: ${booking.reference}`, heading: "Your gift voucher is confirmed", intro: "We are pleased to confirm your gift voucher order." }
+      : { subject: `Your gift voucher request: ${booking.reference}`, heading: "We have received your gift voucher request", intro: "We have received your gift voucher request and will process it shortly." };
+    return kind === "confirmation"
+      ? { subject: `Geschenkgutschein bestätigt: ${booking.reference}`, heading: "Ihr Geschenkgutschein ist bestätigt", intro: "Wir freuen uns, Ihre Geschenkgutschein-Bestellung zu bestätigen." }
+      : { subject: `Ihre Gutscheinanfrage: ${booking.reference}`, heading: "Ihre Gutscheinanfrage ist eingegangen", intro: "Wir haben Ihre Geschenkgutschein-Anfrage erhalten und bearbeiten sie in Kürze." };
+  }
   const date = formatDate(booking.flight_date, language);
   if (language === "en") {
     if (kind === "confirmation") return {
@@ -73,7 +81,7 @@ export function bookingEmailSummary(kind: EmailKind, booking: BookingRecord) {
   const details = [
     `${english ? "Reference" : "Referenz"}: ${booking.reference}`,
     `Simulator: ${booking.simulator}`,
-    `${english ? "Appointment" : "Termin"}: ${formatDate(booking.flight_date, english ? "en" : "de")}, ${booking.flight_time}${english ? "" : " Uhr"}`,
+    ...(booking.gift ? [] : [`${english ? "Appointment" : "Termin"}: ${formatDate(booking.flight_date, english ? "en" : "de")}, ${booking.flight_time}${english ? "" : " Uhr"}`]),
     `${english ? "Flight duration" : "Flugdauer"}: ${booking.duration} ${english ? "minutes" : "Minuten"}`,
     ...(booking.voucher_code ? [`${english ? "Voucher code" : "Gutscheincode"}: ${booking.voucher_code}`] : []),
     ...(booking.remark ? [`${english ? "Booking note" : "Anmerkung"}: ${booking.remark}`] : []),
@@ -109,7 +117,7 @@ export async function sendBookingEmail(kind: EmailKind, booking: BookingRecord, 
   const detailRows: string[][] = [
     [english ? "Reference" : "Referenz", booking.reference],
     [english ? "Simulator" : "Simulator", booking.simulator],
-    [english ? "Appointment" : "Termin", `${formatDate(booking.flight_date, english ? "en" : "de")}, ${booking.flight_time}${english ? "" : " Uhr"}`],
+    ...(booking.gift ? [] : [[english ? "Appointment" : "Termin", `${formatDate(booking.flight_date, english ? "en" : "de")}, ${booking.flight_time}${english ? "" : " Uhr"}`]]),
     [english ? "Flight duration" : "Flugdauer", `${booking.duration} ${english ? "minutes" : "Minuten"}`],
     ...(booking.voucher_code ? [[english ? "Voucher code" : "Gutscheincode", booking.voucher_code]] : []),
     ...(booking.discount_amount_cents > 0 ? [[english ? "Discount" : "Rabatt", formatEuro(booking.discount_amount_cents, english ? "en" : "de")]] : []),

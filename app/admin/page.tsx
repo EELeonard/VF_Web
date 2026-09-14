@@ -374,7 +374,7 @@ export default function AdminPage() {
 
   const bookingsByDate = useMemo(() => {
     const grouped = new Map<string, BookingRecord[]>();
-    for (const booking of bookings)
+    for (const booking of bookings.filter((item) => !item.gift))
       grouped.set(booking.flight_date, [
         ...(grouped.get(booking.flight_date) ?? []),
         booking,
@@ -401,7 +401,7 @@ export default function AdminPage() {
       upcoming: bookings.filter(
         (booking) =>
           booking.status !== "cancelled" &&
-          booking.flight_date >= new Date().toISOString().slice(0, 10),
+          !booking.gift && booking.flight_date >= new Date().toISOString().slice(0, 10),
       ).length,
     }),
     [bookings],
@@ -528,7 +528,7 @@ export default function AdminPage() {
                     <h3>
                       {booking.simulator} · {booking.customer_name}
                     </h3>
-                    <p>{formatDateNumeric(booking.flight_date)} · {booking.flight_time} Uhr</p>
+                    <p>{booking.gift ? `${booking.duration} Minuten Geschenkgutschein` : `${formatDateNumeric(booking.flight_date)} · ${booking.flight_time} Uhr`}</p>
                   </div>
                   <button
                     type="button"
@@ -901,9 +901,7 @@ export default function AdminPage() {
             <tbody>
               {visibleBookings.map((booking) => (
                 <tr
-                  className={
-                    booking.instructor_id ? "" : "booking-instructor-missing"
-                  }
+                  className={booking.gift || booking.instructor_id ? "" : "booking-instructor-missing"}
                   key={booking.id}
                 >
                   <td>
@@ -923,12 +921,12 @@ export default function AdminPage() {
                     </span>
                     <small
                       className={
-                        booking.instructor_id
+                        booking.gift || booking.instructor_id
                           ? "instructor-ok"
                           : "instructor-warning"
                       }
                     >
-                      {booking.instructor_name ?? "Instructor fehlt"}
+                      {booking.gift ? "Kein Instructor erforderlich" : booking.instructor_name ?? "Instructor fehlt"}
                     </small>
                     {booking.voucher_code && (
                       <small>
@@ -940,8 +938,8 @@ export default function AdminPage() {
                     )}
                   </td>
                   <td>
-                    <strong>{formatDateNumeric(booking.flight_date)}</strong>
-                    <span>{booking.flight_time} Uhr</span>
+                    <strong>{booking.gift ? "Geschenkgutschein" : formatDateNumeric(booking.flight_date)}</strong>
+                    {!booking.gift && <span>{booking.flight_time} Uhr</span>}
                     {booking.proposed_date && (
                       <small>
                         Vorschlag: {formatDateNumeric(booking.proposed_date)},{" "}

@@ -145,7 +145,7 @@ export default function BookingPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedDate || !time) {
+    if (!gift && (!selectedDate || !time)) {
       setBookingError(english ? "Please select an available appointment." : "Bitte wählen Sie einen freigegebenen Termin.");
       return;
     }
@@ -159,8 +159,8 @@ export default function BookingPage() {
         body: JSON.stringify({
           simulator: simulator.name,
           duration,
-          date: selectedDate,
-          time,
+          date: gift ? "" : selectedDate,
+          time: gift ? "" : time,
           gift,
           name: form.get("name"),
           email: form.get("email"),
@@ -197,7 +197,7 @@ export default function BookingPage() {
           <div className="success-card">
             <div className="success-icon">✓</div><span className="micro-label">{text.received}</span>
             <h3>{text.success}</h3>
-            <p>{english ? "Your" : "Ihr"} {simulator.name} {english ? "flight on" : "Flug am"} <b>{formattedDate}</b> {english ? "at" : "um"} <b>{time}{english ? "" : " Uhr"}</b> {english ? "has been reserved." : "ist vorgemerkt."} {emailSent ? text.savedEmail : text.savedNoEmail} {text.pending}</p>
+            <p>{gift ? (english ? `Your ${simulator.name} gift voucher for ${duration} minutes has been requested.` : `Ihr ${simulator.name} Geschenkgutschein für ${duration} Minuten wurde angefragt.`) : <>{english ? "Your" : "Ihr"} {simulator.name} {english ? "flight on" : "Flug am"} <b>{formattedDate}</b> {english ? "at" : "um"} <b>{time}{english ? "" : " Uhr"}</b> {english ? "has been reserved." : "ist vorgemerkt."}</>} {emailSent ? ` ${text.savedEmail}` : ` ${text.savedNoEmail}`} {text.pending}</p>
             <div className="reference"><span>{text.reference}</span><strong>{reference}</strong></div>
             <div className="success-actions"><button className="button primary form-button" onClick={() => setSubmitted(false)}>{text.another}</button><Link className="button outline-button" href={english ? "/en" : "/"}>{text.home}</Link></div>
           </div>
@@ -213,9 +213,10 @@ export default function BookingPage() {
               <div className="duration-choices full-duration">
                 {durations.map((minutes) => <button type="button" className={duration === minutes ? "duration selected" : "duration"} onClick={() => { setAvailabilityLoading(true); setDuration(minutes); setVoucherResult(null); setVoucherError(""); }} key={minutes}><b>{minutes}</b><span>{text.minutes}</span><small>€ {simulator.prices[minutes]}</small></button>)}
               </div>
+              <label className="gift-toggle"><input type="checkbox" checked={gift} onChange={(event) => { setGift(event.target.checked); setBookingError(""); }} /><span /><b>{text.gift}</b></label>
             </section>
 
-            <section className="booking-step">
+            {!gift && <section className="booking-step">
               <div className="step-title"><span>02</span><div><h2>{text.step2}</h2></div></div>
               <div className="calendar">
                 <div className="calendar-toolbar">
@@ -236,17 +237,17 @@ export default function BookingPage() {
                 </div>
                 <div className="calendar-legend"><span><i className="available" /> {text.available}</span><span><i className="few" /> {text.few}</span><span><i className="full" /> {text.locked}</span></div>
               </div>
-            </section>
+            </section>}
 
-            <section className="booking-step">
+            {!gift && <section className="booking-step">
               <div className="step-title"><span>03</span><div><h2>{text.step3}</h2><p>{formattedDate}</p></div></div>
               <div className="large-time-grid">{timeSlots.map((slot) => <button type="button" key={slot} disabled={!selectedDate || !(availableSlots[selectedDate] ?? []).includes(slot)} className={time === slot ? "time selected" : "time"} onClick={() => setTime(slot)}><b>{slot}</b><span>{english ? "" : "Uhr"}</span></button>)}</div>
               {!availabilityLoading && !selectedDate && <p className="no-availability">{english ? "There are currently no released appointments for this month. Choose another month or contact us." : "Für diesen Monat sind aktuell keine Termine freigeschaltet. Bitte wählen Sie einen anderen Monat oder kontaktieren Sie uns."}</p>}
-            </section>
+            </section>}
 
             <section className="booking-step">
-              <div className="step-title"><span>04</span><div><h2>{text.step4}</h2><p>{text.step4Help}</p></div></div>
-              <div className="form-grid booking-contact"><label>{text.name}<input name="name" type="text" required autoComplete="name" maxLength={160} placeholder={text.namePlaceholder} /></label><label>{text.email}<input name="email" type="email" required autoComplete="email" maxLength={254} placeholder="name@example.com" value={customerEmail} onChange={(event) => { setCustomerEmail(event.target.value); setVoucherResult(null); setVoucherError(""); }} /></label><label>{text.phone}<input name="phone" type="tel" required autoComplete="tel" maxLength={80} placeholder="+43 ..." /></label><label className="gift-toggle"><input type="checkbox" checked={gift} onChange={(event) => setGift(event.target.checked)} /><span /><b>{text.gift}</b></label><label className="booking-remark">{text.remark} <span>{text.optional}</span><textarea name="remark" maxLength={2000} rows={5} placeholder={text.remarkPlaceholder} /></label></div>
+              <div className="step-title"><span>{gift ? "02" : "04"}</span><div><h2>{text.step4}</h2><p>{text.step4Help}</p></div></div>
+              <div className="form-grid booking-contact"><label>{text.name}<input name="name" type="text" required autoComplete="name" maxLength={160} placeholder={text.namePlaceholder} /></label><label>{text.email}<input name="email" type="email" required autoComplete="email" maxLength={254} placeholder="name@example.com" value={customerEmail} onChange={(event) => { setCustomerEmail(event.target.value); setVoucherResult(null); setVoucherError(""); }} /></label><label>{text.phone}<input name="phone" type="tel" required autoComplete="tel" maxLength={80} placeholder="+43 ..." /></label><label className="booking-remark">{text.remark} <span>{text.optional}</span><textarea name="remark" maxLength={2000} rows={5} placeholder={text.remarkPlaceholder} /></label></div>
               <div className="voucher-entry"><label>{text.voucherCode} <span>{text.optional}</span><div><input type="text" maxLength={40} value={voucherCode} onChange={(event) => { setVoucherCode(event.target.value.toUpperCase()); setVoucherResult(null); setVoucherError(""); }} placeholder={text.voucherPlaceholder} autoComplete="off" /><button type="button" disabled={voucherChecking || !voucherCode.trim()} onClick={() => void applyVoucher()}>{voucherChecking ? (english ? "Checking ..." : "Prüft ...") : text.applyVoucher}</button></div></label>{voucherResult && <div className="voucher-success" role="status"><b>✓ {text.voucherApplied}: {voucherResult.code}</b>{voucherResult.description && <span>{voucherResult.description}</span>}</div>}{voucherError && <div className="voucher-error" role="alert">{voucherError}</div>}</div>
               <label className="terms"><input type="checkbox" required /> <span>{text.consent}</span></label>
             </section>
@@ -256,11 +257,11 @@ export default function BookingPage() {
             <span className="micro-label">{text.selection}</span>
             <img src={simulator.image} alt={simulator.name + (english ? " flight simulator" : " Flugsimulator")} />
             <h2>{displaySimulator.name}</h2><p>{displaySimulator.type}</p>
-            <dl><div><dt>{text.date}</dt><dd>{formattedDate}</dd></div><div><dt>{text.start}</dt><dd>{time}{english ? "" : " Uhr"}</dd></div><div><dt>{text.duration}</dt><dd>{duration} {text.minutes}</dd></div><div><dt>{text.voucher}</dt><dd>{gift ? text.yes : text.no}</dd></div></dl>
+            <dl>{!gift && <><div><dt>{text.date}</dt><dd>{formattedDate}</dd></div><div><dt>{text.start}</dt><dd>{time}{english ? "" : " Uhr"}</dd></div></>}<div><dt>{text.duration}</dt><dd>{duration} {text.minutes}</dd></div><div><dt>{text.voucher}</dt><dd>{gift ? text.yes : text.no}</dd></div></dl>
             {voucherResult && <div className="summary-discount"><span>{text.discount} ({voucherResult.code})</span><strong>- € {(voucherResult.discountAmountCents / 100).toFixed(2)}</strong></div>}
             <div className="summary-total"><span>{text.total}</span><strong>{voucherResult && <del>€ {price}</del>} € {voucherResult ? (voucherResult.finalPriceCents / 100).toFixed(2) : price}</strong></div>
             {bookingError && <div className="booking-api-error" role="alert">{bookingError}</div>}
-            <button className="button primary form-button" type="submit" disabled={submitting || availabilityLoading || !selectedDate || !time}>{submitting ? (english ? "Saving ..." : "Wird gespeichert ...") : availabilityLoading ? (english ? "Loading availability ..." : "Verfügbarkeit wird geladen ...") : (english ? "Request booking" : "Buchung anfragen")} <span>→</span></button>
+            <button className="button primary form-button" type="submit" disabled={submitting || (!gift && (availabilityLoading || !selectedDate || !time))}>{submitting ? (english ? "Saving ..." : "Wird gespeichert ...") : !gift && availabilityLoading ? (english ? "Loading availability ..." : "Verfügbarkeit wird geladen ...") : gift ? (english ? "Request gift voucher" : "Gutschein anfragen") : (english ? "Request booking" : "Buchung anfragen")} <span>→</span></button>
             <p className="booking-note">{text.bookingNote}</p>
           </aside>
         </form>
