@@ -762,6 +762,25 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .summary-total del { color:#8e8e93; font-size:15px; font-weight:500; }
 
 footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64px 54px 26px; border-radius:36px; background:#101114; }
+.faq-hero { min-height:500px; }
+.faq-section { width:min(1120px,calc(100% - 40px)); margin:80px auto 120px; }
+.faq-intro { max-width:650px; margin-bottom:44px; }
+.faq-intro h2,.faq-contact h2 { margin:10px 0 14px; font-size:clamp(34px,5vw,58px); letter-spacing:-.045em; }
+.faq-intro p { color:var(--vf-secondary); font-size:17px; line-height:1.6; }
+.faq-list { overflow:hidden; border:1px solid var(--vf-separator); border-radius:28px; background:var(--vf-surface); box-shadow:var(--vf-shadow); }
+.faq-list details { border-bottom:1px solid var(--vf-separator); }
+.faq-list details:last-child { border-bottom:0; }
+.faq-list summary { min-height:82px; display:grid; grid-template-columns:44px minmax(0,1fr) 32px; align-items:center; gap:14px; padding:16px 24px; cursor:pointer; list-style:none; }
+.faq-list summary::-webkit-details-marker { display:none; }
+.faq-list summary>span { color:var(--vf-tertiary); font-size:11px; }
+.faq-list summary>b { font-size:17px; line-height:1.35; }
+.faq-list summary>i { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:var(--vf-background); color:var(--blue); font-size:21px; font-style:normal; transition:transform .2s; }
+.faq-list details[open] summary>i { transform:rotate(45deg); }
+.faq-list details>p { max-width:850px; margin:0; padding:0 72px 28px 82px; color:var(--vf-secondary); font-size:16px; line-height:1.7; }
+.faq-contact { display:flex; align-items:flex-end; justify-content:space-between; gap:28px; margin-top:28px; padding:42px; border-radius:28px; background:var(--blue); color:#fff; }
+.faq-contact h2 { margin-bottom:0; }
+.faq-contact>div:last-child { display:grid; gap:8px; text-align:right; }
+.faq-contact a { color:#fff; font-size:17px; font-weight:700; }
 .footer-top p,.footer-top a:not(.brand):not(.footer-arrow) { color:#a1a1a6; font-size:14px; }
 .footer-label { color:#8e8e93; text-transform:none; letter-spacing:0; font-size:12px; }
 .footer-arrow { width:44px; height:44px; border:0; background:#2c2c2e; }
@@ -1156,6 +1175,12 @@ footer { width:min(calc(100% - 40px),1360px); margin:40px auto 20px; padding:64p
   .calendar-empty,.calendar-day { min-height:66px; }
   .booking-sidebar { border-radius:24px; }
   footer { margin-block:18px 12px; padding:50px 24px 24px; border-radius:26px; }
+  .faq-section { width:calc(100% - 24px); margin:54px auto 72px; }
+  .faq-list { border-radius:22px; }
+  .faq-list summary { grid-template-columns:30px minmax(0,1fr) 32px; gap:8px; padding:14px; }
+  .faq-list details>p { padding:0 54px 24px 52px; font-size:15px; }
+  .faq-contact { align-items:flex-start; flex-direction:column; padding:28px 22px; border-radius:22px; }
+  .faq-contact>div:last-child { text-align:left; }
   .admin-login { display:block; padding:12px; }
   .login-brand { min-height:330px; margin:0; border-radius:26px; }
   .login-panel { padding:52px 16px; }

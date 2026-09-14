@@ -199,7 +199,7 @@ export default function AdminPage() {
       }),
       data = await response.json();
     if (response.ok) {
-      setNotice(`${simulator} wurde für ${selectedCalendarDate} besetzt.`);
+      setNotice(`${simulator} wurde von ${data.availableFrom} bis ${data.availableUntil} besetzt. ${data.assignedCount} Termin(e) wurden zugeordnet.`);
       await Promise.all([loadInstructorData(), loadBookings()]);
     } else setDataError(data.error);
   }
@@ -677,33 +677,25 @@ export default function AdminPage() {
                         item.flight_date === selectedCalendarDate &&
                         item.simulator === simulator.name,
                     ),
-                    requiredTimes = bookings
+                    requiredBookings = bookings
                       .filter(
                         (booking) =>
                           booking.flight_date === selectedCalendarDate &&
                           booking.simulator === simulator.name &&
                           booking.status !== "cancelled",
-                      )
-                      .map((booking) => booking.flight_time),
+                      ),
+                    requiredTimes = requiredBookings.map((booking) => booking.flight_time),
                     qualified = instructors.filter(
                       (item) =>
                         item.active &&
                         (item.capabilities ?? []).includes(simulator.name),
                     ),
-                    available = qualified.filter((item) =>
-                      requiredTimes.length
-                        ? requiredTimes.every((time) =>
-                            (item.availability ?? []).some(
-                              (slot) =>
-                                slot.available_date === selectedCalendarDate &&
-                                slot.available_time === time,
-                            ),
-                          )
-                        : (item.availability ?? []).some(
-                            (slot) =>
-                              slot.available_date === selectedCalendarDate,
-                          ),
-                    );
+                    available = qualified.filter((item) => {
+                      const range = (item.availabilityRanges ?? []).find(entry => entry.available_date === selectedCalendarDate);
+                      if (!range) return false;
+                      const minutes = (value:string) => { const [hours, mins] = value.split(":").map(Number); return hours * 60 + mins; };
+                      return requiredBookings.length === 0 || requiredBookings.some(booking => minutes(booking.flight_time) >= minutes(range.available_from) && minutes(booking.flight_time) + booking.duration <= minutes(range.available_until) + 1);
+                    });
                   return (
                     <article key={simulator.name}>
                       <div>
@@ -717,7 +709,7 @@ export default function AdminPage() {
                         </small>
                         {available.length > 0 && !assignment && (
                           <span className="available-instructor-names">
-                            {available.map((item) => item.name).join(", ")}
+                            {available.map((item) => { const range=(item.availabilityRanges??[]).find(entry=>entry.available_date===selectedCalendarDate); return `${item.name} (${range?.available_from} bis ${range?.available_until})`; }).join(", ")}
                           </span>
                         )}
                       </div>

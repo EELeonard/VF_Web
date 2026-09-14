@@ -1,6 +1,6 @@
 import { ensureBookingsDatabase } from "./bookings-db";
 
-export type Instructor = { id:number; name:string; email:string; username:string|null; active:number; created_at:string; updated_at:string; capabilities?:string[]; availability?:Array<{instructor_id:number;available_date:string;available_time:string}> };
+export type Instructor = { id:number; name:string; email:string; username:string|null; active:number; created_at:string; updated_at:string; capabilities?:string[]; availability?:Array<{instructor_id:number;available_date:string;available_time:string}>; availabilityRanges?:Array<{instructor_id:number;available_date:string;available_from:string;available_until:string}> };
 export type InstructorDayAssignment = { id:number; instructor_id:number; instructor_name:string; simulator:string; flight_date:string; created_at:string };
 
 export async function ensureInstructorDatabase(database: D1Database) {

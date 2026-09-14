@@ -32,6 +32,7 @@ const germanToEnglish: Record<string, string> = {
   "/buchen": "/en/booking",
   "/impressum": "/en/legal-notice",
   "/datenschutz": "/en/privacy",
+  "/faq": "/en/faq",
 };
 
 const englishToGerman = Object.fromEntries(Object.entries(germanToEnglish).map(([german, english]) => [english, german]));

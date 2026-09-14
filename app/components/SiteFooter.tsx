@@ -8,7 +8,7 @@ export function SiteFooter({ language = "de" }: { language?: "de" | "en" }) {
         <div><span className="footer-label">{english ? "Simulator hours" : "Simulatorzeiten"}</span><p>{english ? "Tue to Sun, 9:30 am to 8:00 pm" : "Di bis So, 09:30 bis 20:00"}<br />{english ? "Closed on Mondays" : "Montag geschlossen"}</p></div>
         <a className="footer-arrow" href="#top" aria-label={english ? "Back to top" : "Nach oben"}>↑</a>
       </div>
-      <div className="footer-bottom"><span>© 2026 Vienna Flight</span><div><a href={english ? "/en/legal-notice" : "/impressum"}>{english ? "Legal notice" : "Impressum"}</a><a href={english ? "/en/privacy" : "/datenschutz"}>{english ? "Privacy" : "Datenschutz"}</a><a href="https://viennaflight.at/faq/">FAQ</a><a href="/admin">Login</a></div><span>Made for people who dream of flying.</span></div>
+      <div className="footer-bottom"><span>© 2026 Vienna Flight</span><div><a href={english ? "/en/legal-notice" : "/impressum"}>{english ? "Legal notice" : "Impressum"}</a><a href={english ? "/en/privacy" : "/datenschutz"}>{english ? "Privacy" : "Datenschutz"}</a><a href={english ? "/en/faq" : "/faq"}>FAQ</a><a href="/admin">Login</a></div><span>Made for people who dream of flying.</span></div>
     </footer>
   );
 }

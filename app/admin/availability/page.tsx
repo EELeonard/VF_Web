@@ -8,7 +8,7 @@ type Range = {
   available_until: string;
 };
 type Appointment = { id:number; reference:string; simulator:string; flight_date:string; flight_time:string; duration:number; customer_name:string; status:"confirmed"|"completed"; instructor_assignment_source:"day"|"booking" };
-type DayAssignment = { id:number; simulator:string; flight_date:string };
+type DayAssignment = { id:number; simulator:string; flight_date:string; available_from:string; available_until:string };
 const monthKey = (date = new Date()) =>
   `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 function dates(month: string) {
@@ -198,7 +198,7 @@ export default function InstructorAvailability() {
                 >
                   <b>{Number(date.slice(-2))}</b>
                   <span className="instructor-day-content">
-                    {dateAssignments.length > 0 && <strong>Tageseinsatz: {dateAssignments.map(item => item.simulator).join(", ")}</strong>}
+                    {dateAssignments.length > 0 && <strong>Einsatz: {dateAssignments.map(item => item.simulator).join(", ")}</strong>}
                     {dateAppointments.slice(0, 2).map(item => <i key={item.id}>{item.flight_time} · {item.simulator}</i>)}
                     {dateAppointments.length > 2 && <i>+{dateAppointments.length - 2} weitere</i>}
                     {!dateAssignments.length && !dateAppointments.length && <small>{rangeLabel(range)}</small>}
@@ -223,7 +223,7 @@ export default function InstructorAvailability() {
               ganzen Tag frei.
             </p>
             {((assignmentsByDate.get(selected)?.length ?? 0) > 0 || (appointmentsByDate.get(selected)?.length ?? 0) > 0) && <div className="instructor-schedule">
-              {(assignmentsByDate.get(selected) ?? []).map(assignment => <div className="instructor-day-assignment" key={assignment.id}><b>Ganztägiger Einsatz</b><span>{assignment.simulator}</span></div>)}
+              {(assignmentsByDate.get(selected) ?? []).map(assignment => <div className="instructor-day-assignment" key={assignment.id}><b>{assignment.available_from === "00:00" && assignment.available_until === "23:59" ? "Ganztägiger Einsatz" : `Einsatz ${assignment.available_from} bis ${assignment.available_until}`}</b><span>{assignment.simulator}</span></div>)}
               {(appointmentsByDate.get(selected) ?? []).map(appointment => <div className="instructor-appointment" key={appointment.id}><time>{appointment.flight_time}</time><span><b>{appointment.simulator}</b><small>{appointment.duration} Minuten · {appointment.customer_name} · {appointment.reference}</small></span></div>)}
             </div>}
             <div className="availability-range-actions">

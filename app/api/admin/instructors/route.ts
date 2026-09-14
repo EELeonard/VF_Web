@@ -10,13 +10,14 @@ const validEmail = (value:string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 export async function GET(request:Request) {
   if (!(await isValidSession(request, env.DB))) return Response.json({error:"Nicht autorisiert."},{status:401});
   const db = await ensureInstructorDatabase(env.DB);
-  const [instructors, assignments, capabilities, availability] = await Promise.all([
+  const [instructors, assignments, capabilities, availability, availabilityRanges] = await Promise.all([
     db.prepare("SELECT * FROM instructors ORDER BY active DESC, name").all<Instructor>(),
     db.prepare("SELECT a.*, i.name AS instructor_name FROM instructor_day_assignments a JOIN instructors i ON i.id = a.instructor_id ORDER BY a.flight_date, a.simulator").all<InstructorDayAssignment>(),
     db.prepare("SELECT instructor_id,simulator FROM instructor_capabilities").all<{instructor_id:number;simulator:string}>(),
     db.prepare("SELECT instructor_id,available_date,available_time FROM instructor_availability WHERE available_date >= date('now') ORDER BY available_date,available_time").all<{instructor_id:number;available_date:string;available_time:string}>(),
+    db.prepare("SELECT instructor_id,available_date,available_from,available_until FROM instructor_availability_ranges WHERE available_date >= date('now') ORDER BY available_date").all<{instructor_id:number;available_date:string;available_from:string;available_until:string}>(),
   ]);
-  return Response.json({instructors:instructors.results.map(item=>({...item,capabilities:capabilities.results.filter(capability=>capability.instructor_id===item.id).map(capability=>capability.simulator),availability:availability.results.filter(slot=>slot.instructor_id===item.id)})), assignments:assignments.results});
+  return Response.json({instructors:instructors.results.map(item=>({...item,capabilities:capabilities.results.filter(capability=>capability.instructor_id===item.id).map(capability=>capability.simulator),availability:availability.results.filter(slot=>slot.instructor_id===item.id),availabilityRanges:availabilityRanges.results.filter(range=>range.instructor_id===item.id)})), assignments:assignments.results});
 }
 
 export async function POST(request:Request) {
@@ -34,17 +35,18 @@ export async function POST(request:Request) {
     const instructorId=Number(body.instructorId), simulator=String(body.simulator??""), date=String(body.date??"");
     if (!Number.isInteger(instructorId) || !SIMULATOR_NAMES.includes(simulator as typeof SIMULATOR_NAMES[number]) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return Response.json({error:"Ungültige Tageszuordnung."},{status:400});
     if (!(await db.prepare("SELECT id FROM instructors i WHERE id=? AND active=1 AND EXISTS (SELECT 1 FROM instructor_capabilities c WHERE c.instructor_id=i.id AND c.simulator=?)").bind(instructorId,simulator).first())) return Response.json({error:"Instructor ist für diesen Simulator nicht freigeschaltet."},{status:400});
-    const required=await db.prepare("SELECT flight_time FROM bookings WHERE simulator=? AND flight_date=? AND status!='cancelled'").bind(simulator,date).all<{flight_time:string}>();
-    const available=await db.prepare("SELECT available_time FROM instructor_availability WHERE instructor_id=? AND available_date=?").bind(instructorId,date).all<{available_time:string}>();
-    const availableTimes=new Set(available.results.map(item=>item.available_time));
-    if(required.results.length ? required.results.some(item=>!availableTimes.has(item.flight_time)) : !availableTimes.size)return Response.json({error:"Der Instructor ist für die erforderlichen Zeiten an diesem Tag nicht verfügbar."},{status:409});
-    const conflict=await db.prepare("SELECT existing.reference FROM bookings target JOIN bookings existing ON existing.instructor_id=? AND existing.flight_date=target.flight_date AND existing.simulator!=target.simulator AND existing.status!='cancelled' WHERE target.simulator=? AND target.flight_date=? AND target.status!='cancelled' AND ((target.flight_start_at IS NOT NULL AND existing.flight_start_at IS NOT NULL AND datetime(existing.flight_start_at)<datetime(target.flight_start_at,'+'||target.duration||' minutes') AND datetime(existing.flight_start_at,'+'||existing.duration||' minutes')>datetime(target.flight_start_at)) OR (target.flight_start_at IS NULL AND existing.flight_time=target.flight_time)) LIMIT 1").bind(instructorId,simulator,date).first<{reference:string}>();
-    if(conflict)return Response.json({error:`Der Instructor ist zu dieser Zeit bereits für ${conflict.reference} eingeplant.`},{status:409});
+    const required=await db.prepare("SELECT id,flight_time,duration,flight_start_at FROM bookings WHERE simulator=? AND flight_date=? AND status!='cancelled'").bind(simulator,date).all<{id:number;flight_time:string;duration:number;flight_start_at:string|null}>();
+    const range=await db.prepare("SELECT available_from,available_until FROM instructor_availability_ranges WHERE instructor_id=? AND available_date=?").bind(instructorId,date).first<{available_from:string;available_until:string}>();
+    const minutes=(value:string)=>{const [hours,mins]=value.split(":").map(Number);return hours*60+mins;};
+    if(!range)return Response.json({error:"Für diesen Tag ist kein Verfügbarkeitsfenster des Instructors hinterlegt."},{status:409});
+    const eligible=required.results.filter(item=>minutes(item.flight_time)>=minutes(range.available_from)&&minutes(item.flight_time)+item.duration<=minutes(range.available_until)+1);
+    for(const booking of eligible){const conflict=await db.prepare("SELECT existing.reference FROM bookings existing WHERE existing.instructor_id=? AND existing.id!=? AND existing.flight_date=? AND existing.simulator!=? AND existing.status!='cancelled' AND ((? IS NOT NULL AND existing.flight_start_at IS NOT NULL AND datetime(existing.flight_start_at)<datetime(?,'+'||?||' minutes') AND datetime(existing.flight_start_at,'+'||existing.duration||' minutes')>datetime(?)) OR (? IS NULL AND existing.flight_time=?)) LIMIT 1").bind(instructorId,booking.id,date,simulator,booking.flight_start_at,booking.flight_start_at,booking.duration,booking.flight_start_at,booking.flight_start_at,booking.flight_time).first<{reference:string}>();if(conflict)return Response.json({error:`Der Instructor ist zu dieser Zeit bereits für ${conflict.reference} eingeplant.`},{status:409});}
     await db.batch([
       db.prepare("INSERT INTO instructor_day_assignments (instructor_id,simulator,flight_date) VALUES (?,?,?) ON CONFLICT(simulator,flight_date) DO UPDATE SET instructor_id=excluded.instructor_id").bind(instructorId,simulator,date),
-      db.prepare("UPDATE bookings SET instructor_id=?, instructor_assignment_source='day' WHERE simulator=? AND flight_date=? AND (instructor_id IS NULL OR instructor_assignment_source='day')").bind(instructorId,simulator,date),
+      db.prepare("UPDATE bookings SET instructor_id=NULL,instructor_assignment_source=NULL WHERE simulator=? AND flight_date=? AND instructor_assignment_source='day'").bind(simulator,date),
+      ...eligible.map(booking=>db.prepare("UPDATE bookings SET instructor_id=?,instructor_assignment_source='day' WHERE id=? AND (instructor_id IS NULL OR instructor_assignment_source='day')").bind(instructorId,booking.id)),
     ]);
-    return Response.json({scheduled:true});
+    return Response.json({scheduled:true,assignedCount:eligible.length,availableFrom:range.available_from,availableUntil:range.available_until});
   }
   if (action === "notify-day") {
     const instructorId=Number(body.instructorId), date=String(body.date??"");
