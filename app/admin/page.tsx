@@ -10,6 +10,8 @@ import type {
   Instructor,
   InstructorDayAssignment,
 } from "../lib/instructors-db";
+import { BOOKING_TIMES } from "../lib/availability-db";
+import { bookingFitsAvailability } from "../lib/booking-time";
 
 const statusLabels: Record<BookingStatus, string> = {
   pending: "Offen",
@@ -19,15 +21,7 @@ const statusLabels: Record<BookingStatus, string> = {
 };
 
 const adminWeekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-const adminSlotTimes = [
-  "09:30",
-  "11:00",
-  "12:30",
-  "14:00",
-  "15:30",
-  "17:00",
-  "18:30",
-];
+const adminSlotTimes = [...BOOKING_TIMES];
 
 function monthKey(date = new Date()) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -694,7 +688,7 @@ export default function AdminPage() {
                       const range = (item.availabilityRanges ?? []).find(entry => entry.available_date === selectedCalendarDate);
                       if (!range) return false;
                       const minutes = (value:string) => { const [hours, mins] = value.split(":").map(Number); return hours * 60 + mins; };
-                      return requiredBookings.length === 0 || requiredBookings.some(booking => minutes(booking.flight_time) >= minutes(range.available_from) && minutes(booking.flight_time) + booking.duration <= minutes(range.available_until) + 1);
+                      return requiredBookings.length === 0 || requiredBookings.some(booking => bookingFitsAvailability(booking.flight_time, booking.duration, range.available_from, range.available_until));
                     });
                   return (
                     <article key={simulator.name}>

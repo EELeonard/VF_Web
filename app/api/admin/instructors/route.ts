@@ -4,6 +4,7 @@ import { SIMULATOR_NAMES } from "../../../lib/availability-db";
 import { ensureInstructorDatabase, type Instructor, type InstructorDayAssignment } from "../../../lib/instructors-db";
 import { hashPassword } from "../../../lib/admin-db";
 import { sendUserInvitation } from "../../../lib/user-invitations";
+import { bookingFitsAvailability, bookingOperationalWindow } from "../../../lib/booking-time";
 
 const validEmail = (value:string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -37,10 +38,9 @@ export async function POST(request:Request) {
     if (!(await db.prepare("SELECT id FROM instructors i WHERE id=? AND active=1 AND EXISTS (SELECT 1 FROM instructor_capabilities c WHERE c.instructor_id=i.id AND c.simulator=?)").bind(instructorId,simulator).first())) return Response.json({error:"Instructor ist für diesen Simulator nicht freigeschaltet."},{status:400});
     const required=await db.prepare("SELECT id,flight_time,duration,flight_start_at FROM bookings WHERE simulator=? AND flight_date=? AND status!='cancelled'").bind(simulator,date).all<{id:number;flight_time:string;duration:number;flight_start_at:string|null}>();
     const range=await db.prepare("SELECT available_from,available_until FROM instructor_availability_ranges WHERE instructor_id=? AND available_date=?").bind(instructorId,date).first<{available_from:string;available_until:string}>();
-    const minutes=(value:string)=>{const [hours,mins]=value.split(":").map(Number);return hours*60+mins;};
     if(!range)return Response.json({error:"Für diesen Tag ist kein Verfügbarkeitsfenster des Instructors hinterlegt."},{status:409});
-    const eligible=required.results.filter(item=>minutes(item.flight_time)>=minutes(range.available_from)&&minutes(item.flight_time)+item.duration<=minutes(range.available_until)+1);
-    for(const booking of eligible){const conflict=await db.prepare("SELECT existing.reference FROM bookings existing WHERE existing.instructor_id=? AND existing.id!=? AND existing.flight_date=? AND existing.simulator!=? AND existing.status!='cancelled' AND ((? IS NOT NULL AND existing.flight_start_at IS NOT NULL AND datetime(existing.flight_start_at)<datetime(?,'+'||?||' minutes') AND datetime(existing.flight_start_at,'+'||existing.duration||' minutes')>datetime(?)) OR (? IS NULL AND existing.flight_time=?)) LIMIT 1").bind(instructorId,booking.id,date,simulator,booking.flight_start_at,booking.flight_start_at,booking.duration,booking.flight_start_at,booking.flight_start_at,booking.flight_time).first<{reference:string}>();if(conflict)return Response.json({error:`Der Instructor ist zu dieser Zeit bereits für ${conflict.reference} eingeplant.`},{status:409});}
+    const eligible=required.results.filter(item=>bookingFitsAvailability(item.flight_time,item.duration,range.available_from,range.available_until));
+    for(const booking of eligible){if(!booking.flight_start_at)continue;const window=bookingOperationalWindow(booking.flight_start_at,booking.duration);const conflict=await db.prepare("SELECT existing.reference FROM bookings existing WHERE existing.instructor_id=? AND existing.id!=? AND existing.flight_date=? AND existing.simulator!=? AND existing.status!='cancelled' AND datetime(existing.flight_start_at, '-' || CASE WHEN existing.duration=30 THEN 15 ELSE 30 END || ' minutes')<datetime(?) AND datetime(existing.flight_start_at,'+'||(existing.duration + CASE WHEN existing.duration=30 THEN 15 ELSE 30 END)||' minutes')>datetime(?) LIMIT 1").bind(instructorId,booking.id,date,simulator,window.endsAt,window.startsAt).first<{reference:string}>();if(conflict)return Response.json({error:`Der Instructor ist zu dieser Zeit bereits für ${conflict.reference} eingeplant.`},{status:409});}
     await db.batch([
       db.prepare("INSERT INTO instructor_day_assignments (instructor_id,simulator,flight_date) VALUES (?,?,?) ON CONFLICT(simulator,flight_date) DO UPDATE SET instructor_id=excluded.instructor_id").bind(instructorId,simulator,date),
       db.prepare("UPDATE bookings SET instructor_id=NULL,instructor_assignment_source=NULL WHERE simulator=? AND flight_date=? AND instructor_assignment_source='day'").bind(simulator,date),

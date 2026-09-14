@@ -27,3 +27,26 @@ export function viennaLocalToUtc(date: string, time: string) {
   if (roundTrip !== `${date} ${time}`) throw new Error("Der gewählte Termin ist wegen der Zeitumstellung ungültig.");
   return instant.toISOString();
 }
+
+export function bookingBufferMinutes(duration: number) {
+  return duration === 30 ? 15 : 30;
+}
+
+export function bookingOperationalWindow(flightStartAt: string, duration: number) {
+  const start = new Date(flightStartAt).getTime();
+  const buffer = bookingBufferMinutes(duration) * 60_000;
+  return {
+    startsAt: new Date(start - buffer).toISOString(),
+    endsAt: new Date(start + duration * 60_000 + buffer).toISOString(),
+  };
+}
+
+export function bookingFitsAvailability(flightTime: string, duration: number, availableFrom: string, availableUntil: string) {
+  const toMinutes = (value: string) => {
+    const [hours, minutes] = value.split(":").map(Number);
+    return hours * 60 + minutes;
+  };
+  const buffer = bookingBufferMinutes(duration);
+  return toMinutes(flightTime) - buffer >= toMinutes(availableFrom)
+    && toMinutes(flightTime) + duration + buffer <= toMinutes(availableUntil) + 1;
+}

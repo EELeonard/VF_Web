@@ -6,10 +6,11 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { SiteFooter } from "../components/SiteFooter";
 import { SiteHeader } from "../components/SiteHeader";
 import { simulators, simulatorsEnglish } from "../lib/site-data";
+import { BOOKING_TIMES } from "../lib/availability-db";
 
 const weekdayLabels = ["MO", "DI", "MI", "DO", "FR", "SA", "SO"];
 const weekdayLabelsEnglish = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-const timeSlots = ["09:30", "11:00", "12:30", "14:00", "15:30", "17:00", "18:30"];
+const timeSlots = [...BOOKING_TIMES];
 
 function localISO(date: Date) {
   const year = date.getFullYear();

@@ -5,6 +5,7 @@ import { ensureCommunicationsDatabase, recordCommunication, type BookingCommunic
 import { type BookingRecord } from "../../../lib/bookings-db";
 import { isBookingTime } from "../../../lib/availability-db";
 import { bookingWithInstructorSql, ensureInstructorDatabase } from "../../../lib/instructors-db";
+import { bookingFitsAvailability, bookingOperationalWindow } from "../../../lib/booking-time";
 
 async function bookingFor(db: D1Database, id: number) {
   return db.prepare(bookingWithInstructorSql + " WHERE b.id = ?").bind(id).first<BookingRecord>();
@@ -43,9 +44,10 @@ export async function POST(request: Request) {
     if (instructorId !== null && !Number.isInteger(instructorId)) return Response.json({ error: "Ungültiger Instructor." }, { status: 400 });
     if (instructorId !== null && !(await db.prepare("SELECT id FROM instructors i WHERE id = ? AND active = 1 AND EXISTS (SELECT 1 FROM instructor_capabilities c WHERE c.instructor_id=i.id AND c.simulator=?)").bind(instructorId, booking.simulator).first())) return Response.json({ error: "Instructor ist für diesen Simulator nicht freigegeben." }, { status: 400 });
     if (instructorId !== null) {
-      if (!(await db.prepare("SELECT id FROM instructor_availability WHERE instructor_id=? AND available_date=? AND available_time=?").bind(instructorId,booking.flight_date,booking.flight_time).first())) return Response.json({ error: "Instructor ist für diesen Termin nicht als verfügbar eingetragen." }, { status: 409 });
-      const endAt = booking.flight_start_at ? new Date(new Date(booking.flight_start_at).getTime() + booking.duration * 60_000).toISOString() : null;
-      const conflict = booking.flight_start_at && endAt ? await db.prepare("SELECT reference FROM bookings WHERE instructor_id=? AND id!=? AND status!='cancelled' AND flight_start_at<? AND datetime(flight_start_at,'+'||duration||' minutes')>datetime(?) LIMIT 1").bind(instructorId,id,endAt,booking.flight_start_at).first<{reference:string}>() : null;
+      const range=await db.prepare("SELECT available_from,available_until FROM instructor_availability_ranges WHERE instructor_id=? AND available_date=?").bind(instructorId,booking.flight_date).first<{available_from:string;available_until:string}>();
+      if (!range || !bookingFitsAvailability(booking.flight_time,booking.duration,range.available_from,range.available_until)) return Response.json({ error: "Instructor ist für den Termin einschließlich Vor- und Nachbereitung nicht verfügbar." }, { status: 409 });
+      const window = booking.flight_start_at ? bookingOperationalWindow(booking.flight_start_at,booking.duration) : null;
+      const conflict = window ? await db.prepare("SELECT reference FROM bookings WHERE instructor_id=? AND id!=? AND status!='cancelled' AND datetime(flight_start_at, '-' || CASE WHEN duration=30 THEN 15 ELSE 30 END || ' minutes')<datetime(?) AND datetime(flight_start_at,'+'||(duration + CASE WHEN duration=30 THEN 15 ELSE 30 END)||' minutes')>datetime(?) LIMIT 1").bind(instructorId,id,window.endsAt,window.startsAt).first<{reference:string}>() : null;
       if (conflict) return Response.json({ error: `Instructor ist in diesem Zeitraum bereits für ${conflict.reference} eingeplant.` }, { status: 409 });
     }
     await db.prepare("UPDATE bookings SET instructor_id = ?, instructor_assignment_source = ? WHERE id = ?").bind(instructorId, instructorId === null ? null : "booking", id).run();
