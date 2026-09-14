@@ -483,11 +483,14 @@ export default function AdminPage() {
             <span className="micro-label">Operations Center</span>
             <h1>Buchungen</h1>
           </div>
-          <div className="admin-user">
-            <span>A</span>
-            <div>
-              <b>Administrator</b>
-              <small>Vienna Flight</small>
+          <div className="admin-topbar-actions">
+            <Link className="add-member-button" href="/admin/bookings/new" aria-label="Neue Buchung anlegen" title="Neue Buchung anlegen">+</Link>
+            <div className="admin-user">
+              <span>A</span>
+              <div>
+                <b>Administrator</b>
+                <small>Vienna Flight</small>
+              </div>
             </div>
           </div>
         </header>
