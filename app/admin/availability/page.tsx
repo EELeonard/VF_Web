@@ -31,6 +31,13 @@ function rangeLabel(range?: Range) {
   return `${range.available_from} bis ${range.available_until}`;
 }
 const valid24HourTime = (value: string) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+function normalize24HourTime(value: string) {
+  const compact = value.trim().replace(/[^\d]/g, "");
+  if (compact.length < 3 || compact.length > 4) return value.trim();
+  const padded = compact.padStart(4, "0");
+  const normalized = `${padded.slice(0, 2)}:${padded.slice(2)}`;
+  return valid24HourTime(normalized) ? normalized : value.trim();
+}
 
 export default function InstructorAvailability() {
   const router = useRouter(),
@@ -50,6 +57,7 @@ export default function InstructorAvailability() {
   const load = useCallback(async () => {
     const response = await fetch(
         `/api/admin/instructor-availability?month=${month}`,
+        { credentials: "same-origin", cache: "no-store" },
       ),
       data = await response.json();
     if (response.status === 401) {
@@ -77,16 +85,30 @@ export default function InstructorAvailability() {
     start = from,
     end = until,
   ) {
+    const normalizedStart = normalize24HourTime(start);
+    const normalizedEnd = normalize24HourTime(end);
+    if (mode === "custom" && (!valid24HourTime(normalizedStart) || !valid24HourTime(normalizedEnd) || normalizedStart >= normalizedEnd)) {
+      setError("Bitte geben Sie ein gültiges Zeitfenster im 24-Stunden-Format ein.");
+      return;
+    }
     setSelected(date);
     setDraftMode(mode);
     setSaving(true);
     setError("");
-    const response = await fetch("/api/admin/instructor-availability", {
+    const requestAvailability = () => fetch("/api/admin/instructor-availability", {
         method: "PUT",
+        credentials: "same-origin",
+        cache: "no-store",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ date, mode, from: start, until: end }),
-      }),
-      data = await response.json();
+        body: JSON.stringify({ date, mode, from: normalizedStart, until: normalizedEnd }),
+      });
+    let response = await requestAvailability();
+    if (response.status === 401) {
+      const sessionResponse = await fetch("/api/admin/session", { credentials: "same-origin", cache: "no-store" });
+      const session = await sessionResponse.json();
+      if (sessionResponse.ok && session.authenticated && session.user?.role === "instructor") response = await requestAvailability();
+    }
+    const data = await response.json();
     if (response.ok) {
       setRanges((current) => {
         const next = new Map(current);
@@ -98,7 +120,10 @@ export default function InstructorAvailability() {
         setFrom(data.range.available_from);
         setUntil(data.range.available_until);
       }
-    } else setError(data.error);
+    } else if (response.status === 401) {
+      setError("Ihre Instructor-Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.");
+      router.replace("/admin");
+    } else setError(data.error ?? "Die Verfügbarkeit konnte nicht gespeichert werden.");
     setSaving(false);
   }
   function selectDate(date: string) {
@@ -116,7 +141,7 @@ export default function InstructorAvailability() {
     }
   }
   async function logout() {
-    await fetch("/api/admin/logout", { method: "POST" });
+    await fetch("/api/admin/logout", { method: "POST", credentials: "same-origin" });
     router.replace("/admin");
   }
   const wholeDaySelected = draftMode === "full_day";
@@ -249,6 +274,7 @@ export default function InstructorAvailability() {
                     setFrom(event.target.value);
                     setDraftMode("custom");
                   }}
+                  onBlur={() => setFrom(current => normalize24HourTime(current))}
                 />
                 <small>24-Stunden-Format, zum Beispiel 14:30</small>
               </label>
@@ -265,12 +291,13 @@ export default function InstructorAvailability() {
                     setUntil(event.target.value);
                     setDraftMode("custom");
                   }}
+                  onBlur={() => setUntil(current => normalize24HourTime(current))}
                 />
                 <small>24-Stunden-Format, zum Beispiel 18:00</small>
               </label>
               <button
                 className={customRangeSelected ? "available" : ""}
-                disabled={saving || !valid24HourTime(from) || !valid24HourTime(until) || from >= until}
+                disabled={saving || !valid24HourTime(normalize24HourTime(from)) || !valid24HourTime(normalize24HourTime(until)) || normalize24HourTime(from) >= normalize24HourTime(until)}
                 onClick={() => void setDay(selected, "custom")}
               >
                 <b>Zeitfenster speichern</b>
