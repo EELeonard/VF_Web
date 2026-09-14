@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { NewsPost } from "../lib/admin-db";
+import { formatDateNumeric } from "../lib/date-format";
 
 export function NewsSection() {
   const pathname = usePathname();
@@ -29,7 +30,7 @@ export function NewsSection() {
     </div>
     <div className="news-grid">
       {posts.map((post, index) => <article className={`news-card reveal${index === 0 ? " featured" : ""}`} key={post.id} style={{ transitionDelay: `${index * 70}ms` }}>
-        <div><span className="news-kicker">{english ? "Update" : "Aktuell"}</span>{post.ends_at && <time>{english ? "Valid until" : "Gültig bis"} {new Date(post.ends_at).toLocaleDateString(english ? "en-GB" : "de-AT", { day: "2-digit", month: "long", year: "numeric" })}</time>}</div>
+        <div><span className="news-kicker">{english ? "Update" : "Aktuell"}</span>{post.ends_at && <time>{english ? "Valid until" : "Gültig bis"} {formatDateNumeric(post.ends_at)}</time>}</div>
         <h3>{english ? post.title_en : post.title_de}</h3>
         <p>{english ? post.excerpt_en : post.excerpt_de}</p>
         <a className="text-link" href={english && post.link_url === "/buchen" ? "/en/booking" : post.link_url}>{english ? post.link_label_en : post.link_label_de} <span>→</span></a>

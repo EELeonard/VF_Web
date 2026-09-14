@@ -2,6 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatDateNumeric } from "../../lib/date-format";
 type Range = {
   available_date: string;
   available_from: string;
@@ -212,12 +213,7 @@ export default function InstructorAvailability() {
         {selected && (
           <section className="availability-times availability-range">
             <h2>
-              {new Date(selected + "T12:00:00Z").toLocaleDateString("de-AT", {
-                weekday: "long",
-                day: "2-digit",
-                month: "long",
-                timeZone: "UTC",
-              })}
+              {formatDateNumeric(selected)}
             </h2>
             <p>
               Legen Sie ein beliebiges Zeitfenster fest oder geben Sie den

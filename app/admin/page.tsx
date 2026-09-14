@@ -12,6 +12,7 @@ import type {
 } from "../lib/instructors-db";
 import { BOOKING_TIMES } from "../lib/availability-db";
 import { bookingFitsAvailability } from "../lib/booking-time";
+import { formatDateNumeric } from "../lib/date-format";
 
 const statusLabels: Record<BookingStatus, string> = {
   pending: "Offen",
@@ -175,7 +176,7 @@ export default function AdminPage() {
         data = await response.json();
       if (response.ok) {
         setNotice(
-          `${simulator} ist am ${selectedCalendarDate} nicht mehr zugeordnet.`,
+          `${simulator} ist am ${formatDateNumeric(selectedCalendarDate)} nicht mehr zugeordnet.`,
         );
         await Promise.all([loadInstructorData(), loadBookings()]);
       } else setDataError(data.error);
@@ -193,7 +194,7 @@ export default function AdminPage() {
       }),
       data = await response.json();
     if (response.ok) {
-      setNotice(`${simulator} wurde von ${data.availableFrom} bis ${data.availableUntil} besetzt. ${data.assignedCount} Termin(e) wurden zugeordnet.`);
+      setNotice(`${simulator} wurde am ${formatDateNumeric(selectedCalendarDate)} von ${data.availableFrom} bis ${data.availableUntil} besetzt. ${data.assignedCount} Termin(e) wurden zugeordnet.`);
       await Promise.all([loadInstructorData(), loadBookings()]);
     } else setDataError(data.error);
   }
@@ -388,14 +389,7 @@ export default function AdminPage() {
     [calendarMonth],
   );
   const today = new Date().toISOString().slice(0, 10);
-  const selectedDateLabel = selectedCalendarDate
-    ? new Date(selectedCalendarDate + "T12:00:00").toLocaleDateString("de-AT", {
-        weekday: "long",
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      })
-    : null;
+  const selectedDateLabel = selectedCalendarDate ? formatDateNumeric(selectedCalendarDate) : null;
 
   const counts = useMemo(
     () => ({
@@ -534,12 +528,7 @@ export default function AdminPage() {
                     <h3>
                       {booking.simulator} · {booking.customer_name}
                     </h3>
-                    <p>
-                      {new Date(
-                        booking.flight_date + "T12:00:00",
-                      ).toLocaleDateString("de-AT")}{" "}
-                      · {booking.flight_time} Uhr
-                    </p>
+                    <p>{formatDateNumeric(booking.flight_date)} · {booking.flight_time} Uhr</p>
                   </div>
                   <button
                     type="button"
@@ -684,7 +673,7 @@ export default function AdminPage() {
               <header>
                 <div>
                   <span className="micro-label">
-                    Besetzung am {selectedCalendarDate}
+                    Besetzung am {formatDateNumeric(selectedCalendarDate)}
                   </span>
                   <h3>Verfügbare Instructoren nach Simulator</h3>
                 </div>
@@ -951,19 +940,11 @@ export default function AdminPage() {
                     )}
                   </td>
                   <td>
-                    <strong>
-                      {new Date(
-                        booking.flight_date + "T12:00:00",
-                      ).toLocaleDateString("de-AT", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </strong>
+                    <strong>{formatDateNumeric(booking.flight_date)}</strong>
                     <span>{booking.flight_time} Uhr</span>
                     {booking.proposed_date && (
                       <small>
-                        Vorschlag: {booking.proposed_date},{" "}
+                        Vorschlag: {formatDateNumeric(booking.proposed_date)},{" "}
                         {booking.proposed_time}
                       </small>
                     )}

@@ -7,6 +7,7 @@ import { SiteFooter } from "../components/SiteFooter";
 import { SiteHeader } from "../components/SiteHeader";
 import { simulators, simulatorsEnglish } from "../lib/site-data";
 import { BOOKING_TIMES } from "../lib/availability-db";
+import { formatDateNumeric } from "../lib/date-format";
 
 const weekdayLabels = ["MO", "DI", "MI", "DO", "FR", "SA", "SO"];
 const weekdayLabelsEnglish = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
@@ -113,7 +114,7 @@ export default function BookingPage() {
     return cells;
   }, [displayMonth]);
 
-  const formattedDate = selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString(english ? "en-GB" : "de-AT", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) : (english ? "No date selected" : "Kein Termin ausgewählt");
+  const formattedDate = selectedDate ? formatDateNumeric(selectedDate) : (english ? "No date selected" : "Kein Termin ausgewählt");
 
   function changeMonth(offset: number) {
     setAvailabilityLoading(true);
